@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#17223B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Marca y Mente">
+<title>Marca y Mente · Biblioteca</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#17223B;--ink-soft:#3B4763;--paper:#F7F6F2;--card:#FFFFFF;--line:#E7E3DA;
+ --meta:#6B6455;--ochre:#B9772A;--ochre-soft:#F0E3CE;--shadow:0 1px 2px rgba(23,34,59,.05),0 4px 14px rgba(23,34,59,.05)}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+ font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;padding-bottom:calc(66px + env(safe-area-inset-bottom))}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px}h1,h2,h3{font-family:Fraunces,Georgia,serif}
+header{position:sticky;top:0;z-index:20;background:var(--ink);color:#fff;padding-top:env(safe-area-inset-top);box-shadow:0 2px 12px rgba(23,34,59,.18)}
+.head-inner{padding:14px 16px 13px;max-width:760px;margin:0 auto}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brandwrap{display:flex;align-items:center;gap:11px;min-width:0}
+.emblem{width:40px;height:40px;flex:0 0 auto}
+.brand h1{font-weight:600;font-size:23px;margin:0;line-height:1}
+.sub{font-size:11.5px;color:#B9C2D6;margin-top:3px;letter-spacing:.02em}
+.total{display:flex;align-items:baseline;gap:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:11px;padding:6px 11px;white-space:nowrap}
+.total .num{font-family:Fraunces,serif;font-weight:600;font-size:21px;line-height:1;color:#fff;font-variant-numeric:tabular-nums}
+.total .lbl{font-size:11.5px;color:#B9C2D6;font-weight:500}
+.search{position:relative;margin-top:13px}
+.search input{width:100%;font-size:16px;color:var(--ink);background:#fff;border:1px solid transparent;border-radius:12px;padding:13px 40px 13px 42px;outline:none}
+.search input:focus{border-color:var(--ochre);box-shadow:0 0 0 3px rgba(185,119,42,.25)}
+.search .ico{position:absolute;left:14px;top:50%;transform:translateY(-50%);pointer-events:none}
+.search .clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:#eee;color:#555;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer;display:none;line-height:1}
+.search .clear.show{display:block}
+.catbar{padding:12px 16px 2px}
+.catsel{width:100%;font-family:inherit;font-size:15px;font-weight:500;color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:13px 38px 13px 13px;outline:none;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23DCE2EE' stroke-width='2'><path d='m6 9 6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 14px center}
+.catsel option{color:#17223B;background:#fff}
+.ainput{width:100%;font-size:16px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;outline:none;margin:2px 0 12px}
+.ainput:focus{border-color:var(--ochre);box-shadow:0 0 0 3px rgba(185,119,42,.2)}
+.linkbtn{display:inline-block;background:none;border:0;color:var(--ochre);font-size:14px;font-weight:600;cursor:pointer;padding:0;text-decoration:underline}
+.buy{display:flex;flex-wrap:wrap;gap:8px}
+.buybtn{display:inline-block;background:var(--paper);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:9px 13px;font-size:13.5px;font-weight:600;text-decoration:none}
+.tag.clk{cursor:pointer}
+.authhead{padding:2px 0 2px}
+.chip{flex:0 0 auto;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:#DCE2EE;border-radius:999px;padding:7px 14px;font-size:13.5px;font-weight:500;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px}
+.chip .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.chip .n{font-size:11.5px;opacity:.7;font-variant-numeric:tabular-nums}
+.chip.active{background:#fff;color:var(--ink);border-color:#fff}.chip.check::before{content:"\2713 ";font-weight:700}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0 10px}
+.result{font-size:13.5px;color:var(--meta)}.result b{color:var(--ink);font-variant-numeric:tabular-nums}
+.sort{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--meta)}
+.sort select{font-family:inherit;font-size:13.5px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:9px;padding:7px 9px;outline:none}
+.authbar{display:none;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-bottom:12px}
+.authbar.show{display:flex}.authbar .who{font-size:14px}.authbar .who b{font-family:Fraunces,serif}
+.authbar button{border:0;background:var(--paper);color:var(--meta);border-radius:8px;padding:6px 10px;font-size:12.5px;cursor:pointer}
+.list{padding-bottom:20px;display:flex;flex-direction:column;gap:10px}
+.card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 15px 14px 20px;box-shadow:var(--shadow);overflow:hidden;cursor:pointer}
+.card .spine{position:absolute;left:0;top:0;bottom:0;width:6px}
+.card h2{font-weight:500;font-size:17.5px;line-height:1.25;margin:0 0 3px}
+.card .author{font-size:14px;color:var(--ink-soft);font-weight:500}
+.card .author.none{color:#B4AEA1;font-style:italic;font-weight:400}
+.card .meta{margin-top:9px;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-size:12px}
+.tag{background:var(--paper);border:1px solid var(--line);color:var(--meta);border-radius:6px;padding:3px 8px;font-weight:500}
+.tag.cat{color:#fff;border:0}.tag.flag{background:#FBEFD6;border-color:#EBD6A6;color:#8A6414}
+.tag.vid{background:#EAF1EA;border-color:#CFE0CF;color:#3C6B47}
+mark{background:var(--ochre-soft);border-radius:2px;padding:0 1px}
+.empty{text-align:center;padding:56px 20px;color:var(--meta)}
+.empty h3{font-weight:500;color:var(--ink);font-size:20px;margin:0 0 6px}
+.empty button{margin-top:14px;background:var(--ink);color:#fff;border:0;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:600;cursor:pointer}
+.view{display:none}.view.active{display:block}
+.view-head{padding:18px 0 8px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.view-head h2{font-size:22px;font-weight:600;margin:0 0 2px}.view-head p{margin:0;color:var(--meta);font-size:13.5px}
+.segw{display:flex;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg{border:0;background:none;padding:8px 14px;font-size:13px;color:var(--meta);cursor:pointer}
+.seg.on{background:var(--ink);color:#fff}
+.arow{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:12px 14px;margin-bottom:8px;cursor:pointer}
+.arow .nm{font-size:15px;font-weight:500}.arow .ct{font-size:12.5px;color:var(--meta);white-space:nowrap;font-variant-numeric:tabular-nums}
+.arow.multi{border-color:#E3CE9F;background:#FEFBF3}
+.arow .badge{display:inline-block;background:var(--ochre);color:#fff;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600}
+.stat{display:flex;gap:12px;margin:8px 0 20px}
+.statbox{flex:1;background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center}
+.statbox .big{font-family:Fraunces,serif;font-weight:600;font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+.statbox .cap{font-size:12px;color:var(--meta);margin-top:5px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 16px 6px;margin-bottom:16px}
+.panel h3{font-size:16px;font-weight:600;margin:0 0 12px}
+.bar{margin-bottom:11px;cursor:pointer}.bar .lab{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px}
+.bar .lab .v{color:var(--meta);font-variant-numeric:tabular-nums}
+.bar .track{height:8px;background:var(--paper);border-radius:5px;overflow:hidden}.bar .fill{height:100%;border-radius:5px}
+.enrich{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.enrich p{margin:0 0 12px;font-size:13.5px;color:var(--meta)}
+.btn{background:var(--ink);color:#fff;border:0;border-radius:10px;padding:11px 16px;font-size:14px;font-weight:600;cursor:pointer}
+.btn.ghost{background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+.prog{height:8px;background:var(--paper);border-radius:5px;overflow:hidden;margin-top:12px;display:none}.prog.show{display:block}
+.prog .pfill{height:100%;background:var(--ochre);width:0%;transition:width .2s}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#fff;border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{flex:1;border:0;background:none;padding:9px 4px 8px;color:var(--meta);font-size:11px;font-weight:500;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9}
+nav.tabs button.on{color:var(--ink)}nav.tabs button.on svg{stroke:var(--ochre)}
+.overlay{position:fixed;inset:0;z-index:40;background:rgba(23,34,59,.45);display:none;align-items:flex-end;justify-content:center}
+.overlay.show{display:flex}
+.sheet{background:var(--paper);width:100%;max-width:760px;max-height:92vh;overflow-y:auto;border-radius:20px 20px 0 0;-webkit-overflow-scrolling:touch}
+.sheet-bar{position:sticky;top:0;background:var(--paper);display:flex;justify-content:flex-end;padding:10px 12px 0;z-index:2}
+.sheet-bar button{border:0;background:#e7e3da;color:#3B4763;width:34px;height:34px;border-radius:50%;font-size:18px;cursor:pointer;line-height:1}
+.detail{padding:6px 22px 40px}
+.detail .top{display:flex;gap:16px;align-items:flex-start}
+.cover{width:104px;min-width:104px;height:158px;border-radius:8px;background:#EDE9E0;box-shadow:0 4px 14px rgba(23,34,59,.16);display:flex;align-items:center;justify-content:center;color:#B4AEA1;font-size:11px;text-align:center;padding:8px}
+.detail h2{font-size:22px;font-weight:600;line-height:1.2;margin:2px 0 6px}
+.detail .by{font-size:15px;color:var(--ink-soft);font-weight:500}
+.detail .by a{color:var(--ochre);text-decoration:none;border-bottom:1px solid rgba(185,119,42,.35)}
+.detail .facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.dbtns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.detail section{margin-top:24px}
+.detail section h3{font-size:14px;letter-spacing:.04em;text-transform:uppercase;color:var(--meta);font-family:Inter,sans-serif;font-weight:600;margin:0 0 10px}
+.detail .body{font-size:15px;line-height:1.6;color:#2C3550}
+.detail .muted{color:#9A9384;font-style:italic}
+.spinner{width:16px;height:16px;border:2px solid #d8d3c8;border-top-color:var(--ochre);border-radius:50%;display:inline-block;animation:spin .7s linear infinite;vertical-align:-3px;margin-right:7px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.src{font-size:11.5px;color:#B4AEA1;margin-top:8px}.src a{color:#B4AEA1}
+.vid{margin-bottom:14px}
+.vid video{width:100%;border-radius:10px;background:#000;max-height:300px}
+.vidactions{display:flex;gap:8px;margin-top:6px}
+.vidactions button{border:0;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer}
+@media (prefers-reduced-motion:no-preference){.card{transition:box-shadow .15s}}
+.card:focus-within{box-shadow:0 0 0 3px rgba(185,119,42,.28)}
+footer{text-align:center;color:#9A9384;font-size:12px;padding:6px 16px 24px}
+
+.gearbtn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#fff;width:38px;height:38px;border-radius:11px;font-size:18px;cursor:pointer;margin-left:8px;flex:0 0 auto}
+.addbtn{width:100%;background:var(--ink);color:#fff;border:0;border-radius:12px;padding:13px;font-size:15px;font-weight:600;margin:2px 0 12px;cursor:pointer}
+.fld{margin:12px 0}.fld label{display:block;font-size:13px;color:var(--meta);margin-bottom:5px;font-weight:600}
+.in{width:100%;font-size:16px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px;outline:none}
+.in:focus{border-color:var(--ochre);box-shadow:0 0 0 3px rgba(185,119,42,.18)}
+.row{display:flex;gap:8px;align-items:center}.row .in{flex:1}
+.ytwrap{position:relative;padding-bottom:56.25%;height:0;margin-bottom:12px;border-radius:10px;overflow:hidden;background:#000}
+.ytwrap iframe{position:absolute;inset:0;width:100%;height:100%}
+.toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 16px;border-radius:10px;font-size:14px;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:90%;text-align:center}
+
+.cardrow{display:flex;gap:12px;align-items:flex-start}
+.thumb{width:44px;min-width:44px;height:66px;border-radius:5px;background:#EDE9E0 center/cover no-repeat;flex:0 0 auto;box-shadow:0 1px 3px rgba(23,34,59,.12)}
+.cardbody{flex:1;min-width:0}
+.cban{display:flex;align-items:center;gap:10px;background:#FBEFD6;border:1px solid #EBD6A6;color:#8A6414;border-radius:11px;padding:10px 12px;margin-bottom:12px;font-size:13.5px}
+.cban button{margin-left:auto;background:var(--ink);color:#fff;border:0;border-radius:9px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+</style>
+</head>
+<body>
+<header>
+  <div class="head-inner">
+    <div class="brand">
+      <div class="brandwrap">
+        <span class="emblem"><svg viewBox="0 0 64 64" fill="none" stroke="#E7D6AE" stroke-linecap="round" stroke-linejoin="round"><g stroke-width="2"><path d="M32,44 C24,41 16,40 10,42 L12,53 C20,56 28,57 32,57 Z"/><path d="M32,44 C40,41 48,40 54,42 L52,53 C44,56 36,57 32,57 Z"/><path d="M32,44 L32,57"/><path d="M32,42 L32,25"/><path d="M32,42 L23,31"/><path d="M32,42 L41,31"/></g><g stroke-width="1.6"><circle cx="32" cy="22" r="3.4"/><circle cx="21" cy="28" r="2.7"/><circle cx="43" cy="28" r="2.7"/></g><circle cx="32" cy="22" r="1" fill="#E7D6AE" stroke="none"/></svg></span>
+        <div><h1>Marca y Mente</h1><div class="sub">Maritza &amp; Javier Fernando</div></div>
+      </div>
+      <div class="total"><span class="num" id="totalNum">0</span><span class="lbl" id="totalLbl">libros</span></div>
+      <button id="gear" class="gearbtn" aria-label="Ajustes">⚙</button>
+    </div>
+    <div class="search" id="searchWrap">
+      <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9a9384" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span>
+      <input id="q" type="search" inputmode="search" autocomplete="off" placeholder="Buscar por título, autor o editorial" aria-label="Buscar libros">
+      <button class="clear" id="clear" aria-label="Borrar">&times;</button>
+    </div>
+  </div>
+  <div class="catbar" id="catbar"><select id="catSelect" class="catsel" aria-label="Categoria"></select></div>
+</header>
+
+<main class="wrap">
+  <section class="view active" id="v-explorar">
+    <div class="authbar" id="authbar"><div class="who">Autor: <b id="authName"></b></div><button id="authClear">Quitar filtro</button></div>
+    <div class="toolbar">
+      <div class="result" id="result"></div>
+      <label class="sort">Ordenar
+        <select id="sort" aria-label="Ordenar por"><option value="t">Título A–Z</option><option value="a">Autor A–Z</option><option value="c">Categoría</option><option value="y">Año (recientes)</option></select>
+      </label>
+    </div>
+    <div id="coverBanner" class="cban" style="display:none"><span id="cbanTxt">Para ver portadas y sinopsis, cárgalas una vez.</span><button id="cbanBtn">Cargar portadas</button></div>
+    <button id="addBtn" class="addbtn">＋ Añadir libro</button>
+    <div class="list" id="list"></div>
+    <div class="empty" id="empty" hidden><h3>Sin resultados</h3><p>No hay libros que coincidan.</p><button id="reset">Ver todos los libros</button></div>
+  </section>
+
+  <section class="view" id="v-autores">
+    <div class="view-head"><div><h2>Autores</h2><p id="authSub"></p></div>
+      <div class="segw"><button class="seg on" id="sAlpha">A–Z</button><button class="seg" id="sCount">Cantidad</button></div>
+    </div>
+    <input id="aq" class="ainput" type="search" inputmode="search" autocomplete="off" placeholder="Buscar autor por nombre">
+    <div id="authList"></div>
+  </section>
+
+  <section class="view" id="v-metricas">
+    <div class="view-head"><div><h2>Métricas</h2><p>Tu colección en números</p></div></div>
+    <div class="stat">
+      <div class="statbox"><div class="big" id="mTotal">0</div><div class="cap">libros</div></div>
+      <div class="statbox"><div class="big" id="mAuthors">0</div><div class="cap">autores</div></div>
+      <div class="statbox"><div class="big" id="mCats">0</div><div class="cap">temáticas</div></div>
+    </div>
+    <div class="panel"><h3>Por temática</h3><div id="mByCat"></div></div>
+    <div class="panel"><h3>Autores con más libros</h3><div id="mByAuthor"></div></div>
+    <div class="panel"><h3>Por editorial</h3><div id="mByEd"></div></div>
+    <div class="enrich"><h3 style="margin:0 0 8px;font-size:16px;font-weight:600">Portadas, sinopsis y años</h3>
+      <p>Trae de Internet (Google Books) las portadas, sinopsis y años de todos los libros y los guarda para que se vean al instante. Tarda un poco y necesita conexión (mejor con la app ya en un enlace web).</p>
+      <button class="btn" id="enrichBtn">Cargar portadas y datos</button>
+      <div class="prog" id="prog"><div class="pfill" id="pfill"></div></div>
+      <div id="mByYear" style="margin-top:14px"></div>
+    </div>
+  </section>
+  <footer>Marca y Mente · catálogo generado el 17/07/2026 · 315 libros</footer>
+</main>
+
+<nav class="tabs">
+  <button data-view="explorar" class="on"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Explorar</button>
+  <button data-view="autores"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Autores</button>
+  <button data-view="metricas"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Métricas</button>
+</nav>
+
+<div class="overlay" id="overlay"><div class="sheet" id="sheet"><div class="sheet-bar"><button id="closeSheet" aria-label="Cerrar">&times;</button></div><div class="detail" id="detail"></div></div></div>
+<input id="recInput" type="file" accept="video/*" capture="environment" hidden>
+<input id="isbnPhoto" type="file" accept="image/*" capture="environment" hidden>
+<input id="coverPhoto" type="file" accept="image/*" capture="environment" hidden>
+<datalist id="catlist"></datalist>
+<div class="overlay" id="overlay2"><div class="sheet" id="sheet2"><div class="sheet-bar"><button id="closeSheet2" aria-label="Cerrar">&times;</button></div><div class="detail" id="modal2"></div></div></div>
+
+<script>
+let BOOKS=[{"t": "Toulouse-Lautrec", "a": "Hajo Düchting", "e": "Könemann", "c": "Arte", "f": 12, "n": ""}, {"t": "Angela Merkel", "a": "Ana Carbajosa", "e": "", "c": "Biografías", "f": 16, "n": ""}, {"t": "Leonardo da Vinci: La biografía", "a": "Walter Isaacson", "e": "", "c": "Biografías", "f": 16, "n": ""}, {"t": "Rubik", "a": "Ernő Rubik", "e": "Blackie Books", "c": "Biografías", "f": 16, "n": ""}, {"t": "Steve Jobs: Lecciones de liderazgo", "a": "Walter Isaacson", "e": "", "c": "Biografías", "f": 7, "n": ""}, {"t": "Una tierra prometida", "a": "Barack Obama", "e": "", "c": "Biografías", "f": 16, "n": ""}, {"t": "Aromas del mundo", "a": "Harold McGee", "e": "Debate", "c": "Ciencia y divulgación", "f": 14, "n": ""}, {"t": "El código secreto", "a": "", "e": "Evergreen", "c": "Ciencia y divulgación", "f": 14, "n": ""}, {"t": "El espejismo de Dios", "a": "Richard Dawkins", "e": "Espasa", "c": "Ciencia y divulgación", "f": 6, "n": ""}, {"t": "El futuro de nuestra mente", "a": "Michio Kaku", "e": "Debate", "c": "Ciencia y divulgación", "f": 21, "n": ""}, {"t": "El hombre que calculaba", "a": "Malba Tahan", "e": "Lucemar", "c": "Ciencia y divulgación", "f": 12, "n": ""}, {"t": "El inconcebible universo", "a": "José Gordon", "e": "", "c": "Ciencia y divulgación", "f": 6, "n": ""}, {"t": "La conquista de la actualidad", "a": "Steven Johnson", "e": "Granica", "c": "Ciencia y divulgación", "f": 6, "n": "Confirmar autor"}, {"t": "La física del futuro", "a": "Michio Kaku", "e": "Debate", "c": "Ciencia y divulgación", "f": 12, "n": ""}, {"t": "La magia de las matemáticas", "a": "", "e": "RBA", "c": "Ciencia y divulgación", "f": 12, "n": ""}, {"t": "La proporción áurea", "a": "Mario Livio", "e": "", "c": "Ciencia y divulgación", "f": 11, "n": ""}, {"t": "La singularidad está más cerca", "a": "Ray Kurzweil", "e": "", "c": "Ciencia y divulgación", "f": 10, "n": ""}, {"t": "Los científicos y el mundo", "a": "Robert P. Crease", "e": "Crítica", "c": "Ciencia y divulgación", "f": 6, "n": ""}, {"t": "Mentes geniales", "a": "Mario de la Piedra Walter", "e": "Debate", "c": "Ciencia y divulgación", "f": 6, "n": ""}, {"t": "Nexus", "a": "Yuval Noah Harari", "e": "Debate", "c": "Ciencia y divulgación", "f": 6, "n": ""}, {"t": "Odorama", "a": "Federico Kukso", "e": "Taurus", "c": "Ciencia y divulgación", "f": 14, "n": ""}, {"t": "Programados para crear", "a": "Marcus du Sautoy", "e": "", "c": "Ciencia y divulgación", "f": 18, "n": ""}, {"t": "Comunícate, cautiva y convence", "a": "Gaby Vargas", "e": "", "c": "Comunicación y marca personal", "f": 9, "n": ""}, {"t": "Cómo ganar amigos e influir sobre las personas", "a": "Dale Carnegie", "e": "", "c": "Comunicación y marca personal", "f": 9, "n": ""}, {"t": "Cómo hablar bien en público e influir sobre las personas de negocios", "a": "Dale Carnegie", "e": "", "c": "Comunicación y marca personal", "f": 9, "n": ""}, {"t": "Cómo vender su marca personal", "a": "Raquel Gómez H.", "e": "", "c": "Comunicación y marca personal", "f": 9, "n": ""}, {"t": "El poder del lenguaje sin palabras", "a": "Bárbara Tijerina", "e": "", "c": "Comunicación y marca personal", "f": 9, "n": ""}, {"t": "Habla para influenciar", "a": "Brian Tracy", "e": "Grijalbo", "c": "Comunicación y marca personal", "f": 8, "n": ""}, {"t": "Hable como en TED", "a": "Carmine Gallo", "e": "", "c": "Comunicación y marca personal", "f": 10, "n": ""}, {"t": "Ideas que pegan", "a": "Chip Heath, Dan Heath", "e": "", "c": "Comunicación y marca personal", "f": 18, "n": ""}, {"t": "Imparable", "a": "Sebastián Lora", "e": "EXMA", "c": "Comunicación y marca personal", "f": 9, "n": ""}, {"t": "Influencia y persuasión", "a": "Guías HBR", "e": "", "c": "Comunicación y marca personal", "f": 13, "n": ""}, {"t": "La comunicación no verbal", "a": "Flora Davis", "e": "", "c": "Comunicación y marca personal", "f": 22, "n": ""}, {"t": "La isla de los 5 faros", "a": "Ferran Ramon-Cortés", "e": "", "c": "Comunicación y marca personal", "f": 8, "n": ""}, {"t": "Marketing personal", "a": "Jorge E. Prieto Herrera", "e": "", "c": "Comunicación y marca personal", "f": 9, "n": ""}, {"t": "Neuro oratoria", "a": "Jürgen Klaric", "e": "", "c": "Comunicación y marca personal", "f": 16, "n": ""}, {"t": "No me hables en ese tono", "a": "Ricardo Gómez", "e": "", "c": "Comunicación y marca personal", "f": 11, "n": ""}, {"t": "Piensa rápido, habla mejor", "a": "Matt Abrahams", "e": "Océano", "c": "Comunicación y marca personal", "f": 11, "n": ""}, {"t": "Storytelling contigo", "a": "", "e": "Knaflic", "c": "Comunicación y marca personal", "f": 9, "n": "Confirmar autor"}, {"t": "Sé tu marca personal", "a": "Claudia Palacio", "e": "", "c": "Comunicación y marca personal", "f": 9, "n": ""}, {"t": "Todo sobre la imagen del éxito", "a": "Gaby Vargas", "e": "", "c": "Comunicación y marca personal", "f": 9, "n": ""}, {"t": "Usa tu derecho a presumir", "a": "Karim Raymond", "e": "PanHouse", "c": "Comunicación y marca personal", "f": 9, "n": ""}, {"t": "Visibilidad infinita", "a": "Andrea Liévano", "e": "", "c": "Comunicación y marca personal", "f": 9, "n": ""}, {"t": "¡Salte con la tuya!", "a": "Álvaro Gordoa", "e": "", "c": "Comunicación y marca personal", "f": 3, "n": ""}, {"t": "Crea: Una guía poco ortodoxa", "a": "Tony Fadell", "e": "Grijalbo", "c": "Creatividad e innovación", "f": 15, "n": ""}, {"t": "El acto de crear", "a": "Rick Rubin", "e": "", "c": "Creatividad e innovación", "f": 13, "n": ""}, {"t": "El espíritu creativo", "a": "Daniel Goleman, Paul Kaufman, Michael Ray", "e": "", "c": "Creatividad e innovación", "f": 22, "n": ""}, {"t": "El secreto de la innovación", "a": "Alejandro Ambrad Chalela", "e": "", "c": "Creatividad e innovación", "f": 17, "n": ""}, {"t": "Flujo de ideas", "a": "Jeremy Utley, Perry Klebahn", "e": "", "c": "Creatividad e innovación", "f": 9, "n": ""}, {"t": "La chispa creativa", "a": "Agustín Fuentes", "e": "Ariel", "c": "Creatividad e innovación", "f": 18, "n": ""}, {"t": "Libera tu magia", "a": "Elizabeth Gilbert", "e": "Aguilar", "c": "Creatividad e innovación", "f": 7, "n": ""}, {"t": "LIT: Enciende tu cerebro", "a": "Jeff Karp, Teresa Barker", "e": "", "c": "Creatividad e innovación", "f": 15, "n": ""}, {"t": "Originales", "a": "Adam Grant", "e": "", "c": "Creatividad e innovación", "f": 17, "n": ""}, {"t": "Proceso creativo", "a": "Eduardo Salles", "e": "", "c": "Creatividad e innovación", "f": 15, "n": ""}, {"t": "Roba como un artista", "a": "Austin Kleon", "e": "Aguilar", "c": "Creatividad e innovación", "f": 13, "n": ""}, {"t": "Big Data con Python", "a": "Rafael Caballero, Enrique Martín, Adrián Riesco", "e": "", "c": "Datos y tecnología", "f": 19, "n": ""}, {"t": "Datanomics", "a": "Paloma Llaneza", "e": "", "c": "Datos y tecnología", "f": 19, "n": ""}, {"t": "Esclavos del algoritmo", "a": "Laura G. de Rivera", "e": "Debate", "c": "Datos y tecnología", "f": 10, "n": ""}, {"t": "Inteligencia de negocios y analítica de datos", "a": "Luis Joyanes", "e": "", "c": "Datos y tecnología", "f": 19, "n": ""}, {"t": "La invasión de los robots", "a": "Xavier Sala i Martín", "e": "", "c": "Datos y tecnología", "f": 17, "n": ""}, {"t": "¡Sálvese quien pueda!", "a": "Andrés Oppenheimer", "e": "Debate", "c": "Datos y tecnología", "f": 19, "n": ""}, {"t": "Derecho territorial y urbano", "a": "Gloria Henao González y otros", "e": "", "c": "Derecho", "f": 16, "n": ""}, {"t": "1000 citas que invitan a pensar", "a": "Antoni Bolinches", "e": "", "c": "Desarrollo personal", "f": 12, "n": ""}, {"t": "Caminando con mi mente", "a": "Santiago Zapata", "e": "", "c": "Desarrollo personal", "f": 8, "n": "Confirmar título"}, {"t": "Crea tu suerte", "a": "Gay Hendricks, Carol Kline", "e": "Aguilar", "c": "Desarrollo personal", "f": 18, "n": ""}, {"t": "Cree lo increíble, logra lo imposible", "a": "Nir Eyal, Julie Li", "e": "", "c": "Desarrollo personal", "f": 24, "n": ""}, {"t": "Cuando las arañas tejen juntas pueden atar a un león", "a": "", "e": "", "c": "Desarrollo personal", "f": 16, "n": "Confirmar autor"}, {"t": "Cómo dejar de ser tu peor enemigo", "a": "Alba Cardalda", "e": "Vergara", "c": "Desarrollo personal", "f": 11, "n": ""}, {"t": "Cómo hacer que te pasen cosas buenas", "a": "Marian Rojas Estapé", "e": "Espasa", "c": "Desarrollo personal", "f": 7, "n": ""}, {"t": "El arte de escuchar", "a": "Julia Cameron", "e": "", "c": "Desarrollo personal", "f": 8, "n": ""}, {"t": "El arte de no amargarse la vida", "a": "Rafael Santandreu", "e": "", "c": "Desarrollo personal", "f": 7, "n": ""}, {"t": "El arte de no reaccionar", "a": "Ryushun Kusanagi", "e": "", "c": "Desarrollo personal", "f": 2, "n": ""}, {"t": "El poder de la gratitud", "a": "Sofía Spaggiari", "e": "", "c": "Desarrollo personal", "f": 3, "n": ""}, {"t": "El viaje a la felicidad", "a": "Eduardo Punset", "e": "Booket", "c": "Desarrollo personal", "f": 23, "n": ""}, {"t": "Encuentra tu persona vitamina", "a": "Marian Rojas Estapé", "e": "Espasa", "c": "Desarrollo personal", "f": 7, "n": ""}, {"t": "Felices", "a": "Elsa Punset", "e": "", "c": "Desarrollo personal", "f": 23, "n": ""}, {"t": "Felicidad a prueba de oficinas", "a": "Sylvia Ramírez", "e": "", "c": "Desarrollo personal", "f": 19, "n": ""}, {"t": "Haz lo que importa", "a": "Oso Trava", "e": "", "c": "Desarrollo personal", "f": 9, "n": ""}, {"t": "La auténtica felicidad", "a": "Martin E. P. Seligman", "e": "Zeta", "c": "Desarrollo personal", "f": 23, "n": ""}, {"t": "La búsqueda de la felicidad", "a": "Tal Ben-Shahar", "e": "", "c": "Desarrollo personal", "f": 23, "n": ""}, {"t": "La ciencia de la felicidad", "a": "Sonja Lyubomirsky", "e": "", "c": "Desarrollo personal", "f": 23, "n": ""}, {"t": "La industria de la felicidad", "a": "William Davies", "e": "", "c": "Desarrollo personal", "f": 23, "n": ""}, {"t": "La segunda mitad", "a": "Diego Bernardini", "e": "", "c": "Desarrollo personal", "f": 10, "n": ""}, {"t": "La teoría Let Them", "a": "Mel Robbins", "e": "", "c": "Desarrollo personal", "f": 2, "n": ""}, {"t": "Las mujeres inteligentes siempre consiguen lo que quieren", "a": "", "e": "", "c": "Desarrollo personal", "f": 8, "n": ""}, {"t": "Libere la felicidad en el trabajo", "a": "Jennifer Moss", "e": "3R Editores", "c": "Desarrollo personal", "f": 23, "n": ""}, {"t": "Los hábitos de la buena suerte", "a": "Verónica de Andrés", "e": "", "c": "Desarrollo personal", "f": 18, "n": ""}, {"t": "Manifiesto de felicidad", "a": "", "e": "", "c": "Desarrollo personal", "f": 23, "n": "Confirmar autor"}, {"t": "Misión felicidad", "a": "María Elvira Pombo Marchand", "e": "Diana", "c": "Desarrollo personal", "f": 23, "n": ""}, {"t": "Mujeres imparables", "a": "Sara Mesa", "e": "Aguilar", "c": "Desarrollo personal", "f": 3, "n": "Confirmar título/autor"}, {"t": "Objetivo: felicidad", "a": "Gretchen Rubin", "e": "books4pocket", "c": "Desarrollo personal", "f": 23, "n": ""}, {"t": "Ojalá me hubieran dicho esto antes", "a": "", "e": "Sancho BBDO", "c": "Desarrollo personal", "f": 22, "n": "Confirmar autor"}, {"t": "Recupera tu mente, reconquista tu vida", "a": "Marian Rojas Estapé", "e": "Espasa", "c": "Desarrollo personal", "f": 7, "n": ""}, {"t": "Recupera tu poder", "a": "Rut Nieves", "e": "", "c": "Desarrollo personal", "f": 8, "n": ""}, {"t": "Si lo crees, lo creas", "a": "Brian Tracy, Christina Stein", "e": "Aguilar", "c": "Desarrollo personal", "f": 10, "n": ""}, {"t": "Sé un algoritmo irrepetible", "a": "Daniela Violi", "e": "", "c": "Desarrollo personal", "f": 8, "n": ""}, {"t": "The Algebra of Happiness", "a": "Scott Galloway", "e": "", "c": "Desarrollo personal", "f": 12, "n": ""}, {"t": "Think Pink", "a": "Ecequiel Barricart", "e": "", "c": "Desarrollo personal", "f": 7, "n": ""}, {"t": "Tu mentalidad buena suerte", "a": "Álex Rovira", "e": "", "c": "Desarrollo personal", "f": 7, "n": ""}, {"t": "El pequeño libro del color", "a": "Karen Haller", "e": "", "c": "Diseño", "f": 14, "n": ""}, {"t": "Psicología del color", "a": "Eva Heller", "e": "GG", "c": "Diseño", "f": 14, "n": ""}, {"t": "The Package Design Book", "a": "", "e": "Taschen", "c": "Diseño", "f": 15, "n": ""}, {"t": "Decídete", "a": "Chip Heath, Dan Heath", "e": "", "c": "Economía y decisiones", "f": 17, "n": ""}, {"t": "Economía de la felicidad", "a": "Josep M. Coll, Xavier Ferrás", "e": "", "c": "Economía y decisiones", "f": 23, "n": ""}, {"t": "El viaje de la humanidad", "a": "Oded Galor", "e": "", "c": "Economía y decisiones", "f": 6, "n": ""}, {"t": "La economía de la manipulación", "a": "George A. Akerlof, Robert J. Shiller", "e": "", "c": "Economía y decisiones", "f": 20, "n": ""}, {"t": "La era de la humanidad", "a": "Marc Vidal", "e": "", "c": "Economía y decisiones", "f": 7, "n": ""}, {"t": "La psicología económica", "a": "Richard H. Thaler", "e": "", "c": "Economía y decisiones", "f": 20, "n": ""}, {"t": "Las trampas del deseo", "a": "Dan Ariely", "e": "Ariel", "c": "Economía y decisiones", "f": 20, "n": ""}, {"t": "Las trampas del dinero", "a": "Dan Ariely, Jeff Kreisler", "e": "", "c": "Economía y decisiones", "f": 11, "n": ""}, {"t": "Las ventajas del deseo", "a": "Dan Ariely", "e": "", "c": "Economía y decisiones", "f": 20, "n": ""}, {"t": "Lo que nunca cambia", "a": "Morgan Housel", "e": "", "c": "Economía y decisiones", "f": 11, "n": ""}, {"t": "Pensar rápido, pensar despacio", "a": "Daniel Kahneman", "e": "Debate", "c": "Economía y decisiones", "f": 20, "n": ""}, {"t": "Pobreza & prejuicio", "a": "Camilo Herrera Mora", "e": "", "c": "Economía y decisiones", "f": 19, "n": ""}, {"t": "Portarse mal", "a": "Richard H. Thaler", "e": "", "c": "Economía y decisiones", "f": 20, "n": ""}, {"t": "Psychonomics", "a": "Martín Tetaz", "e": "", "c": "Economía y decisiones", "f": 18, "n": ""}, {"t": "Ruido", "a": "Daniel Kahneman, Olivier Sibony, Cass R. Sunstein", "e": "Debate", "c": "Economía y decisiones", "f": 20, "n": ""}, {"t": "Un pequeño empujón", "a": "Richard H. Thaler, Cass R. Sunstein", "e": "Taurus", "c": "Economía y decisiones", "f": 20, "n": ""}, {"t": "El arte de no enloquecer", "a": "Ricardo Silva Romero, Alejandro Gaviria", "e": "Debate", "c": "Ensayo", "f": 13, "n": ""}, {"t": "El poder de las afirmaciones", "a": "Louise L. Hay", "e": "", "c": "Espiritualidad", "f": 8, "n": ""}, {"t": "El poder del ahora", "a": "Eckhart Tolle", "e": "", "c": "Espiritualidad", "f": 7, "n": ""}, {"t": "Los cuatro acuerdos", "a": "Dr. Miguel Ruiz", "e": "", "c": "Espiritualidad", "f": 8, "n": ""}, {"t": "Manifestación sin tanto rollo", "a": "Karla Barajas", "e": "", "c": "Espiritualidad", "f": 8, "n": ""}, {"t": "Sana tu pasado para manifestar tu futuro", "a": "Anna Kress", "e": "Aguilar", "c": "Espiritualidad", "f": 8, "n": ""}, {"t": "Un curso de milagros (fácil)", "a": "Alan Cohen", "e": "", "c": "Espiritualidad", "f": 8, "n": ""}, {"t": "ADN cósmico", "a": "Mary Wapiley", "e": "", "c": "Espiritualidad y astrología", "f": 8, "n": "Confirmar autor"}, {"t": "Aquarius", "a": "", "e": "Sterling", "c": "Espiritualidad y astrología", "f": 8, "n": ""}, {"t": "Capricorn", "a": "", "e": "Sterling", "c": "Espiritualidad y astrología", "f": 8, "n": ""}, {"t": "El amor propio está en los astros", "a": "Carla Orantes", "e": "", "c": "Espiritualidad y astrología", "f": 8, "n": ""}, {"t": "El libro de las relaciones", "a": "Mia Astral", "e": "Aguilar", "c": "Espiritualidad y astrología", "f": 8, "n": ""}, {"t": "El arte de la guerra", "a": "Sun Tzu", "e": "Librero", "c": "Estrategia", "f": 15, "n": ""}, {"t": "La utilidad de lo inútil", "a": "Nuccio Ordine", "e": "", "c": "Filosofía", "f": 12, "n": ""}, {"t": "Platón: La verdad está en otra parte", "a": "", "e": "", "c": "Filosofía", "f": 4, "n": ""}, {"t": "Eres un chingón haciendo dinero", "a": "Jen Sincero", "e": "", "c": "Finanzas personales", "f": 7, "n": ""}, {"t": "Pequeño cerdo capitalista", "a": "Sofía Macías", "e": "Aguilar", "c": "Finanzas personales", "f": 7, "n": ""}, {"t": "El infinito en un junco", "a": "Irene Vallejo", "e": "", "c": "Historia", "f": 12, "n": ""}, {"t": "El regreso de Martin Guerre", "a": "Natalie Zemon Davis", "e": "", "c": "Historia", "f": 4, "n": ""}, {"t": "El sueño de Sancho", "a": "Manuel Lozano Leyva", "e": "Debate", "c": "Historia", "f": 6, "n": ""}, {"t": "Grandes estrategias", "a": "John Lewis Gaddis", "e": "Taurus", "c": "Historia", "f": 18, "n": ""}, {"t": "La historia de los árabes", "a": "Albert Hourani", "e": "", "c": "Historia", "f": 12, "n": ""}, {"t": "La ruta del conocimiento", "a": "Violet Moller", "e": "Taurus", "c": "Historia", "f": 6, "n": ""}, {"t": "Metrópolis: Una historia de la ciudad", "a": "Ben Wilson", "e": "Debate", "c": "Historia", "f": 6, "n": ""}, {"t": "Una breve historia de la humanidad en 50 objetos", "a": "Tim Harford", "e": "Conecta", "c": "Historia", "f": 24, "n": ""}, {"t": "La ciencia de la investigación cualitativa", "a": "Martin Packer", "e": "", "c": "Investigación", "f": 19, "n": ""}, {"t": "#La voz del líder", "a": "Mariajosé Quiceno", "e": "", "c": "Liderazgo y management", "f": 3, "n": ""}, {"t": "50 cosas que hay que saber sobre management", "a": "Edward Russell-Walling", "e": "", "c": "Liderazgo y management", "f": 7, "n": ""}, {"t": "Cómo ser un líder", "a": "Daniel Goleman", "e": "", "c": "Liderazgo y management", "f": 7, "n": ""}, {"t": "El ABC del coaching", "a": "John C. Maxwell", "e": "Panamericana", "c": "Liderazgo y management", "f": 8, "n": "Confirmar autor"}, {"t": "El arte de reunirse", "a": "Priya Parker", "e": "", "c": "Liderazgo y management", "f": 10, "n": ""}, {"t": "El líder", "a": "Jim Clifton, Jim Harter", "e": "", "c": "Liderazgo y management", "f": 16, "n": ""}, {"t": "El líder de alto potencial", "a": "Ram Charan, Geoff Willigan", "e": "", "c": "Liderazgo y management", "f": 7, "n": ""}, {"t": "Empieza con el porqué", "a": "Simon Sinek", "e": "", "c": "Liderazgo y management", "f": 10, "n": ""}, {"t": "Guía para ser un CEO exitoso", "a": "Jorge Iván Gómez Osorio", "e": "", "c": "Liderazgo y management", "f": 10, "n": ""}, {"t": "La inteligencia emocional en la empresa", "a": "Daniel Goleman", "e": "", "c": "Liderazgo y management", "f": 23, "n": ""}, {"t": "Lidera tu propio cambio", "a": "Andrea Churba", "e": "Granica", "c": "Liderazgo y management", "f": 9, "n": ""}, {"t": "Liderando equipos", "a": "Guías HBR", "e": "", "c": "Liderazgo y management", "f": 9, "n": ""}, {"t": "Liderazgo", "a": "Daniel Goleman", "e": "", "c": "Liderazgo y management", "f": 7, "n": ""}, {"t": "Líderes y aliadas", "a": "Paola Rojas", "e": "", "c": "Liderazgo y management", "f": 8, "n": ""}, {"t": "Optimal", "a": "Daniel Goleman, Cary Cherniss", "e": "", "c": "Liderazgo y management", "f": 10, "n": ""}, {"t": "¿Por qué no ascienden las mujeres?", "a": "Sally Helgesen, Marshall Goldsmith", "e": "", "c": "Liderazgo y management", "f": 8, "n": ""}, {"t": "(Título de Arnold Bennett)", "a": "Arnold Bennett", "e": "", "c": "Literatura", "f": 4, "n": "Título ilegible: confirmar"}, {"t": "Cáscara de nuez", "a": "Ian McEwan", "e": "", "c": "Literatura", "f": 6, "n": ""}, {"t": "El gato que amaba los libros", "a": "Sosuke Natsukawa", "e": "", "c": "Literatura", "f": 4, "n": ""}, {"t": "El hijo del hombre", "a": "Juan Esteban Constaín", "e": "Debate", "c": "Literatura", "f": 13, "n": ""}, {"t": "El médico", "a": "Noah Gordon", "e": "", "c": "Literatura", "f": 4, "n": ""}, {"t": "El psicoanalista", "a": "John Katzenbach", "e": "Zeta", "c": "Literatura", "f": 16, "n": ""}, {"t": "El sanador de caballos", "a": "Gonzalo Giner", "e": "", "c": "Literatura", "f": 4, "n": ""}, {"t": "Las cosas que llevaban los hombres que lucharon", "a": "Tim O'Brien", "e": "", "c": "Literatura", "f": 6, "n": ""}, {"t": "Martes con mi viejo profesor", "a": "Mitch Albom", "e": "", "c": "Literatura", "f": 12, "n": ""}, {"t": "Más allá del invierno", "a": "Isabel Allende", "e": "", "c": "Literatura", "f": 4, "n": ""}, {"t": "Quieto", "a": "Eduardo Otálora Marulanda", "e": "", "c": "Literatura", "f": 12, "n": ""}, {"t": "1984", "a": "George Orwell", "e": "", "c": "Literatura / clásicos", "f": 12, "n": ""}, {"t": "Borges esencial", "a": "Jorge Luis Borges", "e": "Alfaguara / RAE", "c": "Literatura / clásicos", "f": 5, "n": "Ed. Conmemorativa"}, {"t": "Cuentos de Navidad", "a": "Charles Dickens", "e": "", "c": "Literatura / clásicos", "f": 5, "n": ""}, {"t": "Diario de un loco", "a": "Lu Xun", "e": "", "c": "Literatura / clásicos", "f": 12, "n": ""}, {"t": "Don Quijote de la Mancha", "a": "Miguel de Cervantes", "e": "Alfaguara / RAE", "c": "Literatura / clásicos", "f": 5, "n": "Ed. IV Centenario"}, {"t": "El idiota", "a": "Fiódor M. Dostoievski", "e": "", "c": "Literatura / clásicos", "f": 5, "n": ""}, {"t": "El tambor de hojalata", "a": "Günter Grass", "e": "", "c": "Literatura / clásicos", "f": 12, "n": ""}, {"t": "Frankenstein", "a": "Mary Shelley", "e": "Panamericana", "c": "Literatura / clásicos", "f": 4, "n": ""}, {"t": "Guerra y paz", "a": "Liev N. Tolstói", "e": "", "c": "Literatura / clásicos", "f": 5, "n": ""}, {"t": "La montaña mágica", "a": "Thomas Mann", "e": "", "c": "Literatura / clásicos", "f": 5, "n": ""}, {"t": "Las ilusiones perdidas", "a": "Honoré de Balzac", "e": "Penguin Clásicos", "c": "Literatura / clásicos", "f": 12, "n": ""}, {"t": "Los Miserables", "a": "Victor Hugo", "e": "", "c": "Literatura / clásicos", "f": 4, "n": ""}, {"t": "Orgullo y prejuicio", "a": "Jane Austen", "e": "Penguin", "c": "Literatura / clásicos", "f": 12, "n": ""}, {"t": "Rayuela", "a": "Julio Cortázar", "e": "Alfaguara", "c": "Literatura / clásicos", "f": 4, "n": ""}, {"t": "Sherlock Holmes: Novelas", "a": "Arthur Conan Doyle", "e": "Panamericana", "c": "Literatura / clásicos", "f": 4, "n": "Ed. 50 aniversario"}, {"t": "Soy un gato", "a": "Natsume Sōseki", "e": "", "c": "Literatura / clásicos", "f": 5, "n": ""}, {"t": "Un mundo feliz", "a": "Aldous Huxley", "e": "", "c": "Literatura / clásicos", "f": 12, "n": ""}, {"t": "(Otro título de Virginia Woolf)", "a": "Virginia Woolf", "e": "", "c": "Literatura y ensayo", "f": 2, "n": "Lomo poco legible: confirmar título"}, {"t": "Una habitación propia", "a": "Virginia Woolf", "e": "", "c": "Literatura y ensayo", "f": 2, "n": ""}, {"t": "300 palabras", "a": "Isra Bravo", "e": "", "c": "Marketing y ventas", "f": 10, "n": ""}, {"t": "Brainfluence", "a": "Roger Dooley", "e": "", "c": "Marketing y ventas", "f": 21, "n": ""}, {"t": "Branding: El arte de marcar corazones", "a": "Ricardo Hoyos Ballesteros", "e": "ECOE", "c": "Marketing y ventas", "f": 17, "n": ""}, {"t": "Bueno, bonito y carito", "a": "David Gómez", "e": "", "c": "Marketing y ventas", "f": 17, "n": ""}, {"t": "Buyology", "a": "Martin Lindstrom", "e": "Booket", "c": "Marketing y ventas", "f": 21, "n": ""}, {"t": "Contagioso", "a": "Jonah Berger", "e": "", "c": "Marketing y ventas", "f": 17, "n": ""}, {"t": "Creadores de hits", "a": "Derek Thompson", "e": "Océano", "c": "Marketing y ventas", "f": 18, "n": ""}, {"t": "De invisible a invencible", "a": "Vilma Núñez", "e": "", "c": "Marketing y ventas", "f": 3, "n": ""}, {"t": "Desnudando la mente del consumidor", "a": "Cristina Quiñones", "e": "", "c": "Marketing y ventas", "f": 19, "n": ""}, {"t": "Detalles que enamoran", "a": "David Gómez", "e": "", "c": "Marketing y ventas", "f": 9, "n": ""}, {"t": "El arte de seducir: Merchandising", "a": "Humberto Martínez Cruz", "e": "ECOE", "c": "Marketing y ventas", "f": 17, "n": ""}, {"t": "El poder del instinto", "a": "Leslie Zane", "e": "", "c": "Marketing y ventas", "f": 13, "n": ""}, {"t": "El vendedor desafiante", "a": "Matthew Dixon, Brent Adamson", "e": "", "c": "Marketing y ventas", "f": 10, "n": ""}, {"t": "Emotionomics", "a": "Dan Hill", "e": "Patria", "c": "Marketing y ventas", "f": 23, "n": ""}, {"t": "Estrategias con calle", "a": "Cristina Quiñones", "e": "", "c": "Marketing y ventas", "f": 19, "n": ""}, {"t": "Hooked", "a": "Nir Eyal", "e": "Portfolio Penguin", "c": "Marketing y ventas", "f": 15, "n": ""}, {"t": "La ciencia de las ventas", "a": "Napoleon Hill", "e": "Grijalbo", "c": "Marketing y ventas", "f": 14, "n": "Confirmar autor"}, {"t": "La ciencia del consumidor", "a": "Ignacio Bellido", "e": "Sindíce", "c": "Marketing y ventas", "f": 17, "n": ""}, {"t": "La dinámica de las 4 AES", "a": "", "e": "", "c": "Marketing y ventas", "f": 17, "n": ""}, {"t": "Los 10 pecados capitales del marketing", "a": "Philip Kotler", "e": "", "c": "Marketing y ventas", "f": 7, "n": ""}, {"t": "Los secretos de las marcas", "a": "Fernando de Córdoba", "e": "Kailas", "c": "Marketing y ventas", "f": 14, "n": ""}, {"t": "Marcas pasión", "a": "", "e": "3R Editores", "c": "Marketing y ventas", "f": 14, "n": ""}, {"t": "Marketing 5.0", "a": "Kotler, Kartajaya, Setiawan", "e": "", "c": "Marketing y ventas", "f": 17, "n": ""}, {"t": "Marketing Metrics", "a": "Farris, Bendle, Pfeifer, Reibstein", "e": "Prentice Hall", "c": "Marketing y ventas", "f": 14, "n": ""}, {"t": "Marketing sensorial", "a": "Tatiana Benites", "e": "", "c": "Marketing y ventas", "f": 13, "n": ""}, {"t": "Marketing, más de un siglo de historia", "a": "Ricardo Hoyos Ballesteros", "e": "", "c": "Marketing y ventas", "f": 17, "n": ""}, {"t": "Neuromarketing", "a": "Jordi Llonch López", "e": "", "c": "Marketing y ventas", "f": 21, "n": "Confirmar autor"}, {"t": "Neuromarketing y neuroeconomía", "a": "Andrés Cisneros Enríquez", "e": "ECOE", "c": "Marketing y ventas", "f": 15, "n": ""}, {"t": "Neuromarketing: Descifrando la mente del consumidor", "a": "Javier Fernando Rubiano Espinosa", "e": "", "c": "Marketing y ventas", "f": 1, "n": ""}, {"t": "Neuroventas", "a": "", "e": "", "c": "Marketing y ventas", "f": 21, "n": "Confirmar autor"}, {"t": "Núcleos de influencia", "a": "Nacho Mühlenberg", "e": "", "c": "Marketing y ventas", "f": 9, "n": ""}, {"t": "Plexomarketing", "a": "Alejandro Sala G.", "e": "", "c": "Marketing y ventas", "f": 19, "n": ""}, {"t": "Pre-suasión", "a": "Robert Cialdini", "e": "", "c": "Marketing y ventas", "f": 20, "n": ""}, {"t": "RED marketing", "a": "Greg Creed, Ken Muench", "e": "", "c": "Marketing y ventas", "f": 14, "n": ""}, {"t": "Small Data", "a": "Martin Lindstrom", "e": "", "c": "Marketing y ventas", "f": 19, "n": ""}, {"t": "The Expansion Sale", "a": "Peterson, Riesterer", "e": "McGraw Hill", "c": "Marketing y ventas", "f": 17, "n": ""}, {"t": "The Persuasion Engine", "a": "Roger Dooley", "e": "", "c": "Marketing y ventas", "f": 1, "n": ""}, {"t": "The Sonic Boom", "a": "Joel Beckerman, Tyler Gray", "e": "", "c": "Marketing y ventas", "f": 15, "n": ""}, {"t": "El gran libro de la Gerencia de personal", "a": "", "e": "Panamericana", "c": "Negocios", "f": 16, "n": ""}, {"t": "El negociador", "a": "Arturo Elías Ayub", "e": "", "c": "Negocios", "f": 8, "n": ""}, {"t": "El precio: clave de la rentabilidad", "a": "Nicolás Restrepo Abad", "e": "", "c": "Negocios", "f": 19, "n": ""}, {"t": "Formalmente informales", "a": "Camilo Herrera Mora", "e": "", "c": "Negocios", "f": 19, "n": ""}, {"t": "Gerencia estratégica", "a": "Humberto Serna Gómez", "e": "3R Editores", "c": "Negocios", "f": 17, "n": ""}, {"t": "Hospitalidad irracional", "a": "Will Guidara", "e": "", "c": "Negocios", "f": 11, "n": ""}, {"t": "MBA: Guía visual", "a": "Jason Barron", "e": "Océano", "c": "Negocios", "f": 9, "n": ""}, {"t": "Momentos mágicos", "a": "Chip Heath, Dan Heath", "e": "", "c": "Negocios", "f": 17, "n": ""}, {"t": "Simple", "a": "Lisa Bodell", "e": "", "c": "Negocios", "f": 18, "n": ""}, {"t": "WOBI: 40 años de ideas e inspiración", "a": "", "e": "", "c": "Negocios", "f": 14, "n": ""}, {"t": "A Thousand Brains", "a": "Jeff Hawkins", "e": "Basic Books", "c": "Neurociencia y cerebro", "f": 15, "n": ""}, {"t": "Cerebro productivo", "a": "Blanca Mery Sánchez", "e": "", "c": "Neurociencia y cerebro", "f": 15, "n": ""}, {"t": "Cómo decidimos", "a": "Jonah Lehrer", "e": "", "c": "Neurociencia y cerebro", "f": 20, "n": ""}, {"t": "Cómo recuperar la capacidad de atención", "a": "Dra. Gloria Mark", "e": "", "c": "Neurociencia y cerebro", "f": 13, "n": ""}, {"t": "Dopamina", "a": "Daniel Z. Lieberman, Michael E. Long", "e": "", "c": "Neurociencia y cerebro", "f": 15, "n": ""}, {"t": "El cerebro del consumo", "a": "Federico Fros Campelo", "e": "", "c": "Neurociencia y cerebro", "f": 13, "n": ""}, {"t": "El cerebro del futuro", "a": "Facundo Manes", "e": "", "c": "Neurociencia y cerebro", "f": 21, "n": ""}, {"t": "El cerebro del líder", "a": "Friederike Fabritius, Hans W. Hagemann", "e": "", "c": "Neurociencia y cerebro", "f": 11, "n": ""}, {"t": "El cerebro feliz", "a": "Dean Burnett", "e": "Debate", "c": "Neurociencia y cerebro", "f": 21, "n": ""}, {"t": "El cerebro y el mito del yo", "a": "Rodolfo Llinás", "e": "", "c": "Neurociencia y cerebro", "f": 21, "n": ""}, {"t": "El cerebro ético", "a": "Michael S. Gazzaniga", "e": "Paidós", "c": "Neurociencia y cerebro", "f": 21, "n": ""}, {"t": "El error de Descartes", "a": "Antonio Damasio", "e": "Booket", "c": "Neurociencia y cerebro", "f": 22, "n": ""}, {"t": "El extraño orden de las cosas", "a": "Antonio Damasio", "e": "", "c": "Neurociencia y cerebro", "f": 20, "n": ""}, {"t": "El poder de las palabras", "a": "Mariano Sigman", "e": "Debate", "c": "Neurociencia y cerebro", "f": 10, "n": ""}, {"t": "Elástico", "a": "Leonard Mlodinow", "e": "", "c": "Neurociencia y cerebro", "f": 20, "n": ""}, {"t": "Emocional", "a": "Leonard Mlodinow", "e": "", "c": "Neurociencia y cerebro", "f": 11, "n": ""}, {"t": "En busca de Spinoza", "a": "Antonio Damasio", "e": "Booket", "c": "Neurociencia y cerebro", "f": 22, "n": ""}, {"t": "Focus", "a": "Daniel Goleman", "e": "", "c": "Neurociencia y cerebro", "f": 18, "n": ""}, {"t": "La invención de uno mismo", "a": "Sarah-Jayne Blakemore", "e": "Ariel", "c": "Neurociencia y cerebro", "f": 23, "n": ""}, {"t": "La nueva ciencia de la atención", "a": "Dra. Amishi P. Jha", "e": "", "c": "Neurociencia y cerebro", "f": 13, "n": ""}, {"t": "La vida secreta de la mente", "a": "Mariano Sigman", "e": "Debate", "c": "Neurociencia y cerebro", "f": 13, "n": ""}, {"t": "La vida secreta del cerebro", "a": "Lisa Feldman Barrett", "e": "", "c": "Neurociencia y cerebro", "f": 21, "n": ""}, {"t": "Lo que el cerebro nos dice", "a": "V. S. Ramachandran", "e": "Paidós", "c": "Neurociencia y cerebro", "f": 21, "n": ""}, {"t": "Neurociencia del cuerpo", "a": "Nazareth Castellanos", "e": "", "c": "Neurociencia y cerebro", "f": 11, "n": ""}, {"t": "Neurociencia para la vida real", "a": "Ana Ibáñez", "e": "Planeta", "c": "Neurociencia y cerebro", "f": 24, "n": ""}, {"t": "Neuromúsica", "a": "Jordi A. Jauset", "e": "", "c": "Neurociencia y cerebro", "f": 11, "n": ""}, {"t": "Para que no se te olvide", "a": "Dr. Leonardo Bello", "e": "", "c": "Neurociencia y cerebro", "f": 13, "n": ""}, {"t": "Percepción", "a": "Felipe Reinoso-Carvalho", "e": "", "c": "Neurociencia y cerebro", "f": 13, "n": ""}, {"t": "Potencia tu creatividad de la mano de la neurociencia", "a": "Mónica Kurtis", "e": "Larousse", "c": "Neurociencia y cerebro", "f": 21, "n": ""}, {"t": "Rasgos alterados", "a": "Daniel Goleman, Richard Davidson", "e": "", "c": "Neurociencia y cerebro", "f": 18, "n": ""}, {"t": "Sé más feliz", "a": "Daniel G. Amen", "e": "", "c": "Neurociencia y cerebro", "f": 11, "n": ""}, {"t": "Tu supercerebro", "a": "Kaja Nordengen", "e": "", "c": "Neurociencia y cerebro", "f": 21, "n": ""}, {"t": "Usar el cerebro", "a": "Facundo Manes", "e": "", "c": "Neurociencia y cerebro", "f": 21, "n": ""}, {"t": "Viaje a tu cerebro", "a": "Dra. Rosa Casafont", "e": "", "c": "Neurociencia y cerebro", "f": 21, "n": ""}, {"t": "Y el cerebro creó al hombre", "a": "Antonio Damasio", "e": "Booket", "c": "Neurociencia y cerebro", "f": 22, "n": ""}, {"t": "¿Cómo aprendemos?", "a": "Stanislas Dehaene", "e": "", "c": "Neurociencia y cerebro", "f": 13, "n": ""}, {"t": "Cómo calmar tu mente", "a": "Chris Bailey", "e": "", "c": "Productividad y hábitos", "f": 13, "n": ""}, {"t": "Enfócate (Deep Work)", "a": "Cal Newport", "e": "", "c": "Productividad y hábitos", "f": 13, "n": ""}, {"t": "Hazlo tan bien que no puedan ignorarte", "a": "Cal Newport", "e": "", "c": "Productividad y hábitos", "f": 10, "n": ""}, {"t": "Inmune a la distracción", "a": "Nir Eyal", "e": "", "c": "Productividad y hábitos", "f": 15, "n": ""}, {"t": "Microexperimentos", "a": "Anne-Laure Le Cunff", "e": "", "c": "Productividad y hábitos", "f": 11, "n": ""}, {"t": "Más agudo, más rápido y mejor", "a": "Charles Duhigg", "e": "Aguilar", "c": "Productividad y hábitos", "f": 19, "n": ""}, {"t": "Organízate con eficacia", "a": "David Allen", "e": "", "c": "Productividad y hábitos", "f": 16, "n": ""}, {"t": "Productividad Feel Good", "a": "Ali Abdaal", "e": "", "c": "Productividad y hábitos", "f": 7, "n": ""}, {"t": "Slow Productivity", "a": "Cal Newport", "e": "", "c": "Productividad y hábitos", "f": 13, "n": ""}, {"t": "Superpoderes mentales", "a": "Tony Buzan", "e": "", "c": "Productividad y hábitos", "f": 13, "n": ""}, {"t": "Atlas de las emociones humanas", "a": "Tiffany Watt Smith", "e": "Blackie Books", "c": "Psicología y comportamiento", "f": 14, "n": ""}, {"t": "Atlas de las fobias y las manías", "a": "", "e": "Blackie Books", "c": "Psicología y comportamiento", "f": 14, "n": ""}, {"t": "Blink: Inteligencia intuitiva", "a": "Malcolm Gladwell", "e": "", "c": "Psicología y comportamiento", "f": 13, "n": ""}, {"t": "Cómo detectar mentiras", "a": "Paul Ekman", "e": "", "c": "Psicología y comportamiento", "f": 11, "n": ""}, {"t": "Cómo mandar a la mierda de forma educada", "a": "Alba Cardalda", "e": "Vergara", "c": "Psicología y comportamiento", "f": 11, "n": ""}, {"t": "El arte de la seducción", "a": "Robert Greene", "e": "Océano", "c": "Psicología y comportamiento", "f": 10, "n": ""}, {"t": "El cuerpo habla", "a": "Joe Navarro", "e": "", "c": "Psicología y comportamiento", "f": 9, "n": ""}, {"t": "El efecto emoción", "a": "Juan Isaza", "e": "", "c": "Psicología y comportamiento", "f": 11, "n": ""}, {"t": "El hombre en busca de sentido", "a": "Viktor Frankl", "e": "", "c": "Psicología y comportamiento", "f": 12, "n": ""}, {"t": "El hombre que estaba rodeado de idiotas", "a": "Thomas Erikson", "e": "", "c": "Psicología y comportamiento", "f": 19, "n": ""}, {"t": "El punto clave", "a": "Malcolm Gladwell", "e": "Taurus", "c": "Psicología y comportamiento", "f": 18, "n": ""}, {"t": "El rostro de las emociones", "a": "Paul Ekman", "e": "RBA", "c": "Psicología y comportamiento", "f": 22, "n": ""}, {"t": "El valor de la atención", "a": "Johann Hari", "e": "", "c": "Psicología y comportamiento", "f": 13, "n": ""}, {"t": "Eneagrama: ¿Quién soy?", "a": "Andrea Vargas", "e": "", "c": "Psicología y comportamiento", "f": 2, "n": ""}, {"t": "Este dolor no es mío", "a": "Mark Wolynn", "e": "", "c": "Psicología y comportamiento", "f": 8, "n": ""}, {"t": "Fuera de serie", "a": "Malcolm Gladwell", "e": "Taurus", "c": "Psicología y comportamiento", "f": 18, "n": ""}, {"t": "Homo emoticus", "a": "Richard Firth-Godbehere", "e": "", "c": "Psicología y comportamiento", "f": 11, "n": ""}, {"t": "La estupidez colectiva", "a": "Julián Torres Gómez", "e": "", "c": "Psicología y comportamiento", "f": 19, "n": ""}, {"t": "La inteligencia emocional", "a": "Daniel Goleman", "e": "Zeta", "c": "Psicología y comportamiento", "f": 23, "n": ""}, {"t": "Las 48 leyes del poder", "a": "Robert Greene", "e": "Océano", "c": "Psicología y comportamiento", "f": 10, "n": ""}, {"t": "Miénteme si puedes", "a": "Rosa María Cifuentes", "e": "", "c": "Psicología y comportamiento", "f": 9, "n": ""}, {"t": "No te atrevas a mentirme", "a": "Rita Karanauskas", "e": "", "c": "Psicología y comportamiento", "f": 11, "n": ""}, {"t": "Piénsalo otra vez", "a": "Adam Grant", "e": "", "c": "Psicología y comportamiento", "f": 17, "n": ""}, {"t": "Rodeados de idiotas", "a": "Thomas Erikson", "e": "", "c": "Psicología y comportamiento", "f": 7, "n": ""}, {"t": "Rodeados de mentirosos", "a": "Thomas Erikson", "e": "Planeta", "c": "Psicología y comportamiento", "f": 24, "n": ""}, {"t": "¿Por qué hacemos lo que hacemos?", "a": "John Bargh", "e": "", "c": "Psicología y comportamiento", "f": 20, "n": ""}, {"t": "El milagro antiestrés", "a": "Dr. Carlos Jaramillo", "e": "", "c": "Salud y bienestar", "f": 15, "n": ""}, {"t": "La dieta de la longevidad", "a": "Valter Longo", "e": "Grijalbo", "c": "Salud y bienestar", "f": 18, "n": ""}, {"t": "La increíble conexión intestino-cerebro", "a": "Camila Rowlands", "e": "", "c": "Salud y bienestar", "f": 15, "n": ""}, {"t": "Respira", "a": "James Nestor", "e": "", "c": "Salud y bienestar", "f": 15, "n": ""}, {"t": "(Libro con lomo dorado ornamentado)", "a": "", "e": "", "c": "Sin identificar", "f": 3, "n": "Ilegible en la foto"}];const COLORS={"Marketing y ventas": "#C0642F", "Neurociencia y cerebro": "#3A6EA5", "Psicología y comportamiento": "#7A5AA6", "Desarrollo personal": "#2E8B7B", "Liderazgo y management": "#B2842B", "Comunicación y marca personal": "#C24A6B", "Creatividad e innovación": "#D98A2B", "Economía y decisiones": "#4C7A34", "Ciencia y divulgación": "#2C7C91", "Literatura / clásicos": "#8A4B3A", "Literatura": "#A5623F", "Literatura y ensayo": "#8A4B3A", "Historia": "#6B7A2E", "Biografías": "#556074", "Espiritualidad": "#9B6BA0", "Espiritualidad y astrología": "#6C63B5", "Datos y tecnología": "#2F6F6F", "Productividad y hábitos": "#C77D2E", "Finanzas personales": "#4C7A34", "Negocios": "#7A6A2E", "Filosofía": "#5D6470", "Salud y bienestar": "#2E8B7B", "Diseño": "#C24A6B", "Arte": "#B24A6B", "Estrategia": "#8A4B3A", "Derecho": "#556074", "Ensayo": "#6B7A2E", "Investigación": "#556074", "Sin identificar": "#9A9384"}, CATS=["Marketing y ventas", "Desarrollo personal", "Neurociencia y cerebro", "Psicología y comportamiento", "Comunicación y marca personal", "Literatura / clásicos", "Ciencia y divulgación", "Economía y decisiones", "Liderazgo y management", "Creatividad e innovación", "Literatura", "Negocios", "Productividad y hábitos", "Historia", "Datos y tecnología", "Espiritualidad", "Biografías", "Espiritualidad y astrología", "Salud y bienestar", "Diseño", "Filosofía", "Finanzas personales", "Literatura y ensayo", "Arte", "Derecho", "Ensayo", "Estrategia", "Investigación", "Sin identificar"], DEFAULT_COLOR="#9A9384";let TOTAL=315;
+const norm=s=>(s||"").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+const esc=s=>(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+BOOKS.forEach((b,i)=>{b.i=i;b._s=norm(b.t+" "+b.a+" "+b.e+" "+b.c)});
+function splitAuthors(s){return (s||"").split(/,| y | & | con /i).map(x=>x.trim()).filter(Boolean)}
+const firstAuthor=s=>splitAuthors(s)[0]||"";
+const color=c=>COLORS[c]||DEFAULT_COLOR; const el=id=>document.getElementById(id);
+let CACHE={};try{CACHE=JSON.parse(localStorage.getItem("bib_cache_v2")||"{}")}catch(e){CACHE={}}
+function saveCache(){try{localStorage.setItem("bib_cache_v2",JSON.stringify(CACHE))}catch(e){}}
+let state={q:"",cat:"",author:"",sort:"t",view:"explorar",authSort:"alpha",authQ:""};
+let CURRENT=null, VIDBOOKS=new Set();
+
+let CATCOUNT={},AUTH={},AUTH_COUNT=[],AUTH_ALPHA=[];
+function deriveData(){BOOKS.forEach((b,i)=>{b.i=i;b._s=norm(b.t+" "+b.a+" "+b.e+" "+b.c)});TOTAL=BOOKS.length;
+  CATCOUNT={};BOOKS.forEach(b=>CATCOUNT[b.c]=(CATCOUNT[b.c]||0)+1);
+  Object.keys(CATCOUNT).forEach(c=>{if(!CATS.includes(c))CATS.push(c)});
+  AUTH={};BOOKS.forEach(b=>splitAuthors(b.a).forEach(a=>{(AUTH[a]=AUTH[a]||[]).push(b.i)}));
+  AUTH_COUNT=Object.keys(AUTH).sort((a,b)=>AUTH[b].length-AUTH[a].length||a.localeCompare(b,"es"));
+  AUTH_ALPHA=Object.keys(AUTH).sort((a,b)=>a.localeCompare(b,"es"))}
+deriveData();el("totalNum").textContent=TOTAL;
+
+/* ---- IndexedDB for videos ---- */
+let DB=null;
+function idb(){return new Promise((res,rej)=>{if(DB)return res(DB);let rq;try{rq=indexedDB.open("bibdb",1)}catch(e){return rej(e)}
+  rq.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains("videos"))db.createObjectStore("videos",{keyPath:"id",autoIncrement:true})};
+  rq.onsuccess=e=>{DB=e.target.result;res(DB)};rq.onerror=e=>rej(e)})}
+async function idbAdd(rec){const db=await idb();return new Promise((res,rej)=>{const tx=db.transaction("videos","readwrite");const rq=tx.objectStore("videos").add(rec);rq.onsuccess=e=>res(e.target.result);rq.onerror=rej})}
+async function idbByBook(i){const db=await idb();return new Promise((res)=>{const out=[];const cur=db.transaction("videos").objectStore("videos").openCursor();cur.onsuccess=e=>{const c=e.target.result;if(c){if(c.value.book===i)out.push(c.value);c.continue()}else res(out)};cur.onerror=()=>res(out)})}
+async function idbGet(id){const db=await idb();return new Promise((res)=>{db.transaction("videos").objectStore("videos").get(id).onsuccess=e=>res(e.target.result)})}
+async function idbDel(id){const db=await idb();return new Promise((res)=>{db.transaction("videos","readwrite").objectStore("videos").delete(id).onsuccess=()=>res()})}
+async function idbAllBooks(){try{const db=await idb();return new Promise(res=>{const s=new Set();const cur=db.transaction("videos").objectStore("videos").openCursor();cur.onsuccess=e=>{const c=e.target.result;if(c){s.add(c.value.book);c.continue()}else res(s)};cur.onerror=()=>res(s)})}catch(e){return new Set()}}
+
+/* ---- category dropdown ---- */
+const catSel=el("catSelect");
+function buildCatSelect(){const cats=CATS.slice().sort((a,b)=>a.localeCompare(b,"es"));
+  let h='<option value="">Todas las categorias ('+TOTAL+')</option>';
+  cats.forEach(c=>{h+='<option value="'+esc(c)+'">'+esc(c)+' ('+CATCOUNT[c]+')</option>'});
+  catSel.innerHTML=h;catSel.value=state.cat}
+if(catSel)catSel.addEventListener("change",e=>{state.cat=e.target.value;state.author="";render()});
+
+function hl(text,q){if(!q)return esc(text);const nt=norm(text),nq=norm(q);let o="",i=0;for(;;){const idx=nt.indexOf(nq,i);if(idx<0){o+=esc(text.slice(i));break}o+=esc(text.slice(i,idx))+"<mark>"+esc(text.slice(idx,idx+q.length))+"</mark>";i=idx+q.length}return o}
+
+function filtered(){const nq=norm(state.q.trim());
+  let out=BOOKS.filter(b=>{if(state.author&&!splitAuthors(b.a).includes(state.author))return false;
+    if(state.cat&&b.c!==state.cat)return false;if(nq&&!b._s.includes(nq))return false;return true});
+  const k=state.sort;const yr=x=>{const y=+((CACHE["gb:"+x.i]||{}).year);return y||-1};
+  out.sort((a,b)=>{if(k==="y"){const d=yr(b)-yr(a);return d||a.t.localeCompare(b.t,"es")}
+    if(k==="c")return a.c.localeCompare(b.c,"es")||a.t.localeCompare(b.t,"es");
+    if(k==="a")return (a.a||"~").localeCompare(b.a||"~","es")||a.t.localeCompare(b.t,"es");
+    return a.t.localeCompare(b.t,"es")});return out}
+function render(){const rows=filtered(),q=state.q.trim();
+  el("authbar").classList.toggle("show",!!state.author);if(state.author)el("authName").textContent=state.author;
+  el("totalNum").textContent=rows.length;
+  el("totalLbl").textContent=state.cat?"en categoría":(state.author?"de este autor":(state.q?"encontrados":"libros"));
+  if(catSel&&catSel.value!==state.cat)catSel.value=state.cat;
+  let scope="";if(state.cat)scope=" · "+esc(state.cat);
+  el("result").innerHTML="<b>"+rows.length+"</b> de "+TOTAL+" libros"+scope;
+  el("empty").hidden=rows.length>0;el("list").hidden=rows.length===0;
+  el("list").innerHTML=rows.map(b=>{const col=color(b.c);
+    const au=b.a?'<div class="author">'+hl(b.a,q)+'</div>':'<div class="author none">Autor por confirmar</div>';
+    const ed=b.e?'<span class="tag">'+esc(b.e)+'</span>':'';const ft=b.f?'<span class="tag">Foto '+b.f+'</span>':'';
+    const fl=b.n?'<span class="tag flag">'+esc(b.n)+'</span>':'';const vd=VIDBOOKS.has(b.i)?'<span class="tag vid">▶ video</span>':'';
+    const cov=(CACHE["gb:"+b.i]||{}).cover||b.cover||"";
+    const thumb='<div class="thumb" data-i="'+b.i+'"'+(cov?' style="background-image:url(\''+cov+'\')"':'')+'></div>';
+    return '<article class="card" data-i="'+b.i+'" tabindex="0"><span class="spine" style="background:'+col+'"></span>'+
+      '<div class="cardrow">'+thumb+'<div class="cardbody"><h2>'+hl(b.t,q)+'</h2>'+au+'<div class="meta"><span class="tag cat" style="background:'+col+'">'+esc(b.c)+'</span>'+ed+ft+vd+fl+'</div></div></div></article>'}).join("");
+  attachThumbs()}
+
+function renderAuthors(){let list=state.authSort==="alpha"?AUTH_ALPHA:AUTH_COUNT;
+  const nq=norm((state.authQ||"").trim());if(nq)list=list.filter(a=>norm(a).includes(nq));
+  const multi=AUTH_ALPHA.filter(a=>AUTH[a].length>1).length;
+  el("authSub").textContent=AUTH_ALPHA.length+" autores · "+multi+" con más de un libro";
+  el("authList").innerHTML=list.map(a=>{const n=AUTH[a].length;
+    return '<div class="arow'+(n>1?' multi':'')+'" data-author="'+esc(a)+'"><span class="nm">'+esc(a)+'</span>'+
+      '<span class="ct">'+(n>1?'<span class="badge">'+n+'</span>':n+' libro')+'</span></div>'}).join("")||'<p style="color:#9A9384;font-size:14px;padding:10px 2px">No hay autores que coincidan.</p>'}
+
+function bar(label,val,max,col,act){const pct=Math.max(3,Math.round(val/max*100));
+  return '<div class="bar"'+(act?' data-act="'+act+'"':'')+'><div class="lab"><span>'+esc(label)+'</span><span class="v">'+val+'</span></div>'+
+    '<div class="track"><div class="fill" style="width:'+pct+'%;background:'+col+'"></div></div></div>'}
+function renderMetrics(){el("mTotal").textContent=TOTAL;el("mAuthors").textContent=AUTH_ALPHA.length;el("mCats").textContent=CATS.length;
+  const cmax=Math.max(...Object.values(CATCOUNT));el("mByCat").innerHTML=CATS.map(c=>bar(c,CATCOUNT[c],cmax,color(c),"cat:"+c)).join("");
+  const topA=AUTH_COUNT.filter(a=>AUTH[a].length>1).slice(0,15);const amax=topA.length?AUTH[topA[0]].length:1;
+  el("mByAuthor").innerHTML=topA.map(a=>bar(a,AUTH[a].length,amax,"#B2842B","auth:"+a)).join("")||'<p style="color:#9A9384;font-size:13px">—</p>';
+  const ED={};BOOKS.forEach(b=>{if(b.e)ED[b.e]=(ED[b.e]||0)+1});const eds=Object.keys(ED).sort((a,b)=>ED[b]-ED[a]).slice(0,12);const emax=eds.length?ED[eds[0]]:1;
+  el("mByEd").innerHTML=eds.map(e=>bar(e,ED[e],emax,"#556074",null)).join("")}
+
+/* ---- online lookups ---- */
+async function fetchJSON(u){const r=await fetch(u);if(!r.ok)throw new Error("http");return r.json()}
+async function lookupBook(b){const key="gb:"+b.i;if(CACHE[key])return CACHE[key];const info={};let neterr=false;
+  const a=firstAuthor(b.a);const qs=['intitle:'+b.t+(a?'+inauthor:'+a:'')];if(a)qs.push(b.t+' '+a);qs.push(b.t);
+  for(const q of qs){try{
+    const j=await fetchJSON('https://www.googleapis.com/books/v1/volumes?q='+encodeURIComponent(q)+'&maxResults=4&country=US');
+    const items=j.items||[];let vi=null;
+    for(const it of items){if(it.volumeInfo&&it.volumeInfo.description){vi=it.volumeInfo;break}}
+    if(!vi&&items[0])vi=items[0].volumeInfo;
+    if(vi){if(!info.cover&&vi.imageLinks)info.cover=(vi.imageLinks.thumbnail||vi.imageLinks.smallThumbnail||"").replace("http://","https://").replace("&edge=curl","");
+      if(!info.synopsis&&vi.description)info.synopsis=vi.description;
+      if(!info.year&&vi.publishedDate)info.year=(vi.publishedDate+"").slice(0,4);
+      if(!info.link&&vi.infoLink)info.link=vi.infoLink;
+      if(info.synopsis)break}
+  }catch(e){neterr=true}}
+  if(!info.cover){try{const j=await fetchJSON('https://openlibrary.org/search.json?limit=1&title='+encodeURIComponent(b.t)+(a?'&author='+encodeURIComponent(a):''));
+    const d=j.docs&&j.docs[0];if(d&&d.cover_i)info.cover='https://covers.openlibrary.org/b/id/'+d.cover_i+'-M.jpg';if(d&&!info.year&&d.first_publish_year)info.year=""+d.first_publish_year}catch(e){neterr=true}}
+  if(!info.synopsis&&!info.cover&&neterr){info.neterr=true;return info}
+  CACHE[key]=info;saveCache();return info}
+async function lookupAuthor(name){const key="wk:"+name;if(CACHE[key])return CACHE[key];let info={};let neterr=false;
+  try{const r=await fetch('https://es.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(name));
+    if(r.ok){const j=await r.json();if(j.extract&&!(j.type||"").includes("disambiguation")){info.bio=j.extract;if(j.content_urls)info.link=j.content_urls.desktop.page}}
+    else if(r.status!==404)neterr=true}catch(e){neterr=true}
+  if(!info.bio){try{const r=await fetch('https://es.wikipedia.org/w/api.php?action=opensearch&limit=1&format=json&origin=*&search='+encodeURIComponent(name));
+    if(r.ok){const j=await r.json();const t=j[1]&&j[1][0];if(t){const r2=await fetch('https://es.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(t));if(r2.ok){const j2=await r2.json();if(j2.extract){info.bio=j2.extract;if(j2.content_urls)info.link=j2.content_urls.desktop.page}}}}}catch(e){neterr=true}}
+  if(!info.bio&&neterr){info.neterr=true;return info}
+  CACHE[key]=info;saveCache();return info}
+
+/* ---- detail ---- */
+function openDetail(i){CURRENT=i;CUR_AUTHOR=null;const b=BOOKS[i];const col=color(b.c);const enc=encodeURIComponent(b.t+' '+(b.a||''));
+  const facts=[b.e?'<span class="tag">'+esc(b.e)+'</span>':'','<span class="tag cat clk" style="background:'+col+'" data-cat="'+esc(b.c)+'">'+esc(b.c)+' ›</span>',
+    b.f?'<span class="tag">Foto '+b.f+'</span>':'',b.n?'<span class="tag flag">'+esc(b.n)+'</span>':''].join("");
+  const byline=b.a?'Por <a data-author="'+esc(firstAuthor(b.a))+'">'+esc(b.a)+'</a>':'<span class="muted">Autor por confirmar</span>';
+  el("detail").innerHTML='<div class="top"><div class="cover" id="dcover">Buscando<br>portada…</div><div style="flex:1">'+
+      '<h2>'+esc(b.t)+'</h2><div class="by">'+byline+'</div><div class="facts">'+facts+'</div>'+
+      '<div class="dbtns"><button class="btn" data-act="share">Compartir libro</button></div></div></div>'+
+    '<section><h3>Sinopsis</h3><div class="body" id="dsyn"><span class="spinner"></span>Buscando en Internet…</div></section>'+
+    (b.a?'<section><h3>Sobre el autor</h3><div class="body" id="dbio"><span class="spinner"></span>Buscando biografía…</div></section>':'')+
+    '<section><h3>¿Dónde conseguirlo?</h3><div class="buy">'+
+      '<a class="buybtn" target="_blank" rel="noopener" href="https://www.google.com/search?tbm=bks&q='+enc+'">Google Books</a>'+
+      '<a class="buybtn" target="_blank" rel="noopener" href="https://www.amazon.com/s?k='+enc+'">Amazon</a>'+
+      '<a class="buybtn" target="_blank" rel="noopener" href="https://www.buscalibre.com.co/libros/search?q='+enc+'">Buscalibre</a>'+
+      '<a class="buybtn" target="_blank" rel="noopener" href="https://www.goodreads.com/search?q='+enc+'">Goodreads</a>'+
+      '</div><p class="src">Enlaces de búsqueda para ver disponibilidad y precio.</p></section>'+
+    '<section><h3>Videos</h3><div id="dyt"></div><div id="dvids"><span class="spinner"></span>Cargando…</div>'+
+      '<div class="dbtns" style="margin-top:10px"><button class="btn ghost" data-act="rec">Grabar video</button><button class="btn ghost" data-act="yt">Enlace de YouTube</button><a class="btn ghost" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query='+enc+'">Buscar en YouTube</a></div>'+
+      '<p class="src">Se guardan en este dispositivo. Compártelos por WhatsApp o correo con el botón de cada video.</p></section>'+
+    '<div class="src" id="dsrc"></div>';
+  el("overlay").classList.add("show");document.body.style.overflow="hidden";el("sheet").scrollTop=0;
+  const gsearch='https://www.google.com/search?q='+encodeURIComponent(b.t+' '+(b.a||'')+' libro');
+  lookupBook(b).then(info=>{const cv=el("dcover");if(cv&&!b.cover){if(info.cover){cv.style.background="url('"+info.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}else cv.textContent="Sin portada"}
+    if(el("dsyn")){if(info.synopsis)el("dsyn").innerHTML=esc(info.synopsis).replace(/\n+/g,"<br><br>");
+      else if(info.neterr)el("dsyn").innerHTML='<span class="muted">No se pudo conectar a Internet para traer la sinopsis.</span> <button class="linkbtn" data-act="retry">Reintentar</button><div class="src">Si abriste el archivo directamente, algunos teléfonos bloquean la búsqueda. Funciona mejor con conexión y desde un enlace web.</div>';
+      else el("dsyn").innerHTML='<span class="muted">No se encontró una sinopsis en línea para este título.</span> <a class="linkbtn" href="'+gsearch+'" target="_blank" rel="noopener">Buscar en Google</a>'}
+    let src=[];if(info.year)src.push("Publicado: "+info.year);if(info.link)src.push('<a href="'+info.link+'" target="_blank" rel="noopener">Google Books</a>');if(el("dsrc"))el("dsrc").innerHTML=src.join(" · ")});
+  if(b.a)lookupAuthor(firstAuthor(b.a)).then(info=>{if(el("dbio")){if(info.bio)el("dbio").innerHTML=esc(info.bio)+(info.link?' <a class="linkbtn" href="'+info.link+'" target="_blank" rel="noopener">Wikipedia</a>':'');
+    else if(info.neterr)el("dbio").innerHTML='<span class="muted">No se pudo conectar para traer la biografía.</span> <button class="linkbtn" data-act="retrybio">Reintentar</button>';
+    else el("dbio").innerHTML='<span class="muted">No se encontró biografía en Wikipedia.</span>'}});
+  if(b.cover){const cv=el("dcover");if(cv){cv.style.background="url('"+b.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}}
+  renderYT(b);renderVideos(b)}
+let CUR_AUTHOR=null;
+function openAuthor(name){CURRENT=null;CUR_AUTHOR=name;const ids=AUTH[name]||[];
+  const books=ids.map(i=>BOOKS[i]).sort((a,b)=>a.t.localeCompare(b.t,"es"));
+  const list=books.map(b=>'<div class="arow" data-openbook="'+b.i+'"><span class="nm">'+esc(b.t)+'</span><span class="ct" style="color:'+color(b.c)+'">'+esc(b.c)+'</span></div>').join("");
+  el("detail").innerHTML='<div class="authhead"><h2>'+esc(name)+'</h2><div class="by">'+ids.length+' libro'+(ids.length!==1?'s':'')+' en la biblioteca</div>'+
+      '<div class="dbtns"><button class="btn ghost" data-explore-author="'+esc(name)+'">Ver estos libros en Explorar</button></div></div>'+
+    '<section><h3>Perfil del autor</h3><div class="body" id="dbio"><span class="spinner"></span>Buscando biografía…</div></section>'+
+    '<section><h3>Libros en la biblioteca</h3>'+list+'</section>';
+  el("overlay").classList.add("show");document.body.style.overflow="hidden";el("sheet").scrollTop=0;
+  lookupAuthor(name).then(info=>{if(el("dbio")){if(info.bio)el("dbio").innerHTML=esc(info.bio)+(info.link?' <a class="linkbtn" href="'+info.link+'" target="_blank" rel="noopener">Wikipedia</a>':'');
+    else if(info.neterr)el("dbio").innerHTML='<span class="muted">No se pudo conectar para traer la biografía.</span> <button class="linkbtn" data-act="authbio">Reintentar</button>';
+    else el("dbio").innerHTML='<span class="muted">No se encontró biografía en Wikipedia.</span> <a class="linkbtn" href="https://es.wikipedia.org/w/index.php?search='+encodeURIComponent(name)+'" target="_blank" rel="noopener">Buscar</a>'}})}
+function closeDetail(){el("overlay").classList.remove("show");document.body.style.overflow=""}
+
+async function renderVideos(b){const box=el("dvids");if(!box)return;let vids=[];
+  try{vids=await idbByBook(b.i)}catch(e){box.innerHTML='<p class="muted">No se pudieron cargar los videos en este dispositivo.</p>';return}
+  if(!vids.length){box.innerHTML='<p class="muted">Aún no hay videos. Graba uno contando de qué trata este libro.</p>';return}
+  box.innerHTML=vids.map(v=>{const url=URL.createObjectURL(v.blob);
+    return '<div class="vid"><video src="'+url+'" controls playsinline preload="metadata"></video>'+
+      '<div class="vidactions"><button data-share="'+v.id+'">Compartir</button><button data-del="'+v.id+'">Eliminar</button></div></div>'}).join("")}
+
+async function shareBook(b){const info=CACHE["gb:"+b.i]||{};
+  const text=b.t+(b.a?" — "+b.a:"")+"\n"+b.c+(info.synopsis?"\n\n"+info.synopsis.slice(0,320)+(info.synopsis.length>320?"…":""):"")+(info.link?"\n\n"+info.link:"");
+  let files=[];if(info.cover){try{const r=await fetch(info.cover);const bl=await r.blob();if(bl&&bl.size)files=[new File([bl],"portada.jpg",{type:bl.type||"image/jpeg"})]}catch(e){}}
+  try{if(files.length&&navigator.canShare&&navigator.canShare({files})){await navigator.share({title:b.t,text,files});return}
+    if(navigator.share){await navigator.share({title:b.t,text});return}}catch(e){if(e&&e.name==="AbortError")return}
+  try{await navigator.clipboard.writeText(text);alert("Copiado al portapapeles. Pégalo en WhatsApp o correo.")}catch(e){alert(text)}}
+
+async function shareVideo(id,b){let rec;try{rec=await idbGet(id)}catch(e){}if(!rec)return;
+  const fname=(b.t.replace(/[^\w\u00C0-\u017F]+/g,"_").slice(0,40)||"video")+".mp4";
+  const file=new File([rec.blob],fname,{type:rec.blob.type||"video/mp4"});
+  const text=b.t+(b.a?" — "+b.a:"");
+  try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({title:b.t,text,files:[file]});return}}catch(e){if(e&&e.name==="AbortError")return}
+  const url=URL.createObjectURL(rec.blob);const a=document.createElement("a");a.href=url;a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),6000);
+  alert("Tu navegador no permite compartir el video directamente. Se descargó para que lo adjuntes en WhatsApp o correo.")}
+
+/* ---- year enrichment ---- */
+let ENRICHING=false;
+async function enrichAll(onProg){if(ENRICHING)return;ENRICHING=true;let done=0;const total=BOOKS.length;const queue=BOOKS.slice();
+  async function worker(){while(queue.length){const b=queue.shift();try{await lookupBook(b)}catch(e){}done++;if(onProg)onProg(done,total)}}
+  await Promise.all([worker(),worker(),worker(),worker()]);ENRICHING=false}
+async function enrichYears(){const btn=el("enrichBtn");btn.disabled=true;btn.textContent="Cargando…";el("prog").classList.add("show");
+  await enrichAll((d,t)=>{el("pfill").style.width=Math.round(d/t*100)+"%"});
+  btn.textContent="Actualizar";btn.disabled=false;renderYears();render()}
+function renderYears(){const years={};BOOKS.forEach(b=>{const y=(CACHE["gb:"+b.i]||{}).year;if(y&&/^\d{4}$/.test(y))years[y]=(years[y]||0)+1});
+  const keys=Object.keys(years).sort();if(!keys.length){el("mByYear").innerHTML="";return}
+  const dec={};keys.forEach(y=>{const d=(Math.floor(+y/10)*10)+"s";dec[d]=(dec[d]||0)+years[y]});
+  const dk=Object.keys(dec).sort();const dmax=Math.max(...Object.values(dec));
+  el("mByYear").innerHTML='<h3 style="font-size:14px;margin:4px 0 10px;color:var(--meta);text-transform:uppercase;letter-spacing:.04em;font-family:Inter">Por década ('+keys.length+' años hallados)</h3>'+dk.map(d=>bar(d,dec[d],dmax,"#2C7C91",null)).join("")}
+
+/* ---- nav ---- */
+function setView(v){state.view=v;document.querySelectorAll(".view").forEach(s=>s.classList.remove("active"));el("v-"+v).classList.add("active");
+  document.querySelectorAll("nav.tabs button").forEach(btn=>btn.classList.toggle("on",btn.dataset.view===v));
+  el("searchWrap").style.display=v==="explorar"?"block":"none";el("catbar").style.display=v==="explorar"?"block":"none";
+  if(v==="explorar"){render()}else{el("totalNum").textContent=TOTAL;el("totalLbl").textContent="libros"}
+  if(v==="autores")renderAuthors();if(v==="metricas"){renderMetrics();renderYears()}window.scrollTo(0,0)}
+
+/* ---- events ---- */
+const qEl=el("q"),clearEl=el("clear");
+qEl.addEventListener("input",()=>{state.q=qEl.value;clearEl.classList.toggle("show",!!qEl.value);render()});
+clearEl.onclick=()=>{qEl.value="";state.q="";clearEl.classList.remove("show");qEl.focus();render()};
+el("sort").addEventListener("change",e=>{state.sort=e.target.value;render()});
+el("reset").onclick=()=>{state.q="";qEl.value="";state.cat="";state.author="";clearEl.classList.remove("show");render()};
+el("authClear").onclick=()=>{state.author="";render()};
+el("sAlpha").onclick=()=>{state.authSort="alpha";el("sAlpha").classList.add("on");el("sCount").classList.remove("on");renderAuthors()};
+el("sCount").onclick=()=>{state.authSort="count";el("sCount").classList.add("on");el("sAlpha").classList.remove("on");renderAuthors()};
+el("list").addEventListener("click",e=>{const c=e.target.closest(".card");if(c)openDetail(+c.dataset.i)});
+el("list").addEventListener("keydown",e=>{if(e.key==="Enter"){const c=e.target.closest(".card");if(c)openDetail(+c.dataset.i)}});
+el("authList").addEventListener("click",e=>{const r=e.target.closest("[data-author]");if(r)openAuthor(r.dataset.author)});
+el("mByAuthor").addEventListener("click",e=>{const r=e.target.closest("[data-act]");if(r&&r.dataset.act.startsWith("auth:"))openAuthor(r.dataset.act.slice(5))});
+el("mByCat").addEventListener("click",e=>{const r=e.target.closest("[data-act]");if(r&&r.dataset.act.startsWith("cat:")){state.cat=r.dataset.act.slice(4);state.author="";render();setView("explorar")}});
+el("detail").addEventListener("click",async e=>{
+  const au=e.target.closest("[data-author]");if(au){openAuthor(au.dataset.author);return}
+  const ct=e.target.closest("[data-cat]");if(ct){state.cat=ct.dataset.cat;state.author="";state.q="";qEl.value="";render();closeDetail();setView("explorar");return}
+  const ob=e.target.closest("[data-openbook]");if(ob){openDetail(+ob.dataset.openbook);return}
+  const ea=e.target.closest("[data-explore-author]");if(ea){state.author=ea.dataset.exploreAuthor;state.cat="";state.q="";qEl.value="";render();closeDetail();setView("explorar");return}
+  const act=e.target.closest("[data-act]");if(act){const A=act.dataset.act;if(A==="rec")el("recInput").click();else if(A==="share")shareBook(BOOKS[CURRENT]);else if(A==="retry"){delete CACHE["gb:"+CURRENT];saveCache();const b=BOOKS[CURRENT];if(el("dsyn"))el("dsyn").innerHTML='<span class="spinner"></span>Reintentando…';lookupBook(b).then(info=>{if(el("dsyn"))el("dsyn").innerHTML=info.synopsis?esc(info.synopsis).replace(/\n+/g,"<br><br>"):(info.neterr?'<span class="muted">Sigue sin conexión.</span>':'<span class="muted">Sin sinopsis en línea.</span>');const cv=el("dcover");if(cv&&info.cover){cv.style.background="url('"+info.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}})}else if(A==="retrybio"){const nm=firstAuthor(BOOKS[CURRENT].a);delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm).then(info=>{if(el("dbio"))el("dbio").innerHTML=info.bio?esc(info.bio):(info.neterr?'<span class="muted">Sigue sin conexión.</span>':'<span class="muted">Sin biografía.</span>')})}else if(A==="authbio"){const nm=CUR_AUTHOR;delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm).then(info=>{if(el("dbio"))el("dbio").innerHTML=info.bio?esc(info.bio):(info.neterr?'<span class="muted">Sigue sin conexión.</span>':'<span class="muted">Sin biografía.</span>')})}else if(A==="yt"){setYT(BOOKS[CURRENT])}return}
+  const sh=e.target.closest("[data-share]");if(sh){shareVideo(+sh.dataset.share,BOOKS[CURRENT]);return}
+  const dl=e.target.closest("[data-del]");if(dl){if(confirm("¿Eliminar este video?")){await idbDel(+dl.dataset.del);await refreshVidBooks();renderVideos(BOOKS[CURRENT]);render()}return}});
+el("recInput").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f||CURRENT==null)return;
+  try{await idbAdd({book:CURRENT,blob:f,ts:Date.now()});await refreshVidBooks();renderVideos(BOOKS[CURRENT]);render()}catch(err){alert("No se pudo guardar el video en este dispositivo.")}};
+el("closeSheet").onclick=closeDetail;el("overlay").addEventListener("click",e=>{if(e.target===el("overlay"))closeDetail()});
+el("enrichBtn").onclick=enrichYears;
+document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>setView(b.dataset.view));
+
+async function refreshVidBooks(){VIDBOOKS=await idbAllBooks()}
+const aqEl=el("aq");if(aqEl)aqEl.addEventListener("input",()=>{state.authQ=aqEl.value;renderAuthors()});
+buildCatSelect();render();refreshVidBooks().then(()=>render());
+
+/* ===== online: GitHub + add book + youtube ===== */
+const GH={owner:null,repo:null,branch:"main"};
+(function(){try{const h=location.hostname,p=location.pathname;if(h.endsWith("github.io")){GH.owner=h.split(".")[0];const seg=p.split("/").filter(Boolean);if(seg.length)GH.repo=seg[0]}}catch(e){}
+  try{const o=localStorage.getItem("gh_owner"),r=localStorage.getItem("gh_repo"),br=localStorage.getItem("gh_branch");if(o)GH.owner=o;if(r)GH.repo=r;if(br)GH.branch=br}catch(e){}})();
+function ghToken(){try{return localStorage.getItem("gh_token")||""}catch(e){return""}}
+function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3800)}
+function loadAdds(){try{return JSON.parse(localStorage.getItem("added_books")||"[]")}catch(e){return[]}}
+function saveAddsLocal(a){try{localStorage.setItem("added_books",JSON.stringify(a))}catch(e){}}
+function ytOver(){try{return JSON.parse(localStorage.getItem("yt_over")||"{}")}catch(e){return{}}}
+function ytId(u){if(!u)return"";const m=(""+u).match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);return m?m[1]:""}
+function renderYT(b){const box=el("dyt");if(!box)return;const id=b.yt||ytOver()[norm(b.t+"|"+b.a)]||"";
+  box.innerHTML=id?'<div class="ytwrap"><iframe src="https://www.youtube.com/embed/'+id+'" frameborder="0" allow="encrypted-media" allowfullscreen></iframe></div>':""}
+function setYT(b){const u=prompt("Pega el enlace de YouTube del video (no listado o público):","");if(u==null)return;const id=ytId(u);if(!id){alert("No reconocí el enlace de YouTube.");return}
+  const o=ytOver();o[norm(b.t+"|"+b.a)]=id;try{localStorage.setItem("yt_over",JSON.stringify(o))}catch(e){}b.yt=id;renderYT(b);
+  if(b.n==="Añadido"){const ad=loadAdds();const k=norm(b.t+"|"+b.a);const it=ad.find(x=>norm((x.t||"")+"|"+(x.a||""))===k);if(it){it.yt=id;saveAddsLocal(ad);ghCommitReplace(ad)}}}
+function applyAdds(adds){if(!adds||!adds.length)return;const have=new Set(BOOKS.map(b=>norm((b.t||"")+"|"+(b.a||""))));
+  adds.forEach(a=>{const k=norm((a.t||"")+"|"+(a.a||""));if(!have.has(k)){BOOKS.push(Object.assign({e:"",c:"Sin identificar",f:"",n:"Añadido"},a));have.add(k)}});deriveData()}
+function fillCatlist(){const dl=el("catlist");if(dl)dl.innerHTML=CATS.slice().sort((a,b)=>a.localeCompare(b,"es")).map(c=>'<option value="'+esc(c)+'">').join("")}
+function rebuildUI(){fillCatlist();buildCatSelect();if(state.view==="autores")renderAuthors();if(state.view==="metricas"){renderMetrics();renderYears()}render()}
+function openModal2(){el("overlay2").classList.add("show");document.body.style.overflow="hidden";el("sheet2").scrollTop=0}
+function closeModal2(){el("overlay2").classList.remove("show");document.body.style.overflow=""}
+el("closeSheet2").onclick=closeModal2;el("overlay2").addEventListener("click",e=>{if(e.target===el("overlay2"))closeModal2()});
+async function gLookup(q){try{const r=await fetch('https://www.googleapis.com/books/v1/volumes?q='+encodeURIComponent(q)+'&maxResults=1&country=US');if(!r.ok)return null;const j=await r.json();const vi=j.items&&j.items[0]&&j.items[0].volumeInfo;if(!vi)return null;
+  return{t:vi.title||"",a:(vi.authors||[]).join(", "),e:vi.publisher||"",year:(vi.publishedDate||"").slice(0,4),cover:vi.imageLinks?(vi.imageLinks.thumbnail||vi.imageLinks.smallThumbnail||"").replace("http://","https://").replace("&edge=curl",""):""}}catch(e){return null}}
+async function detectBarcode(file){if(!("BarcodeDetector"in window))return null;try{const bd=new BarcodeDetector({formats:["ean_13","ean_8","upc_a"]});const bmp=await createImageBitmap(file);const c=await bd.detect(bmp);return c&&c[0]?c[0].rawValue:null}catch(e){return null}}
+let ADDCOVER="";
+function fillAdd(d){if(!d)return;if(d.t&&!el("f_t").value)el("f_t").value=d.t;if(d.a&&!el("f_a").value)el("f_a").value=d.a;if(d.e&&!el("f_e").value)el("f_e").value=d.e;if(d.cover){ADDCOVER=d.cover;el("cvprev").innerHTML='<img src="'+d.cover+'" style="height:120px;border-radius:8px;margin-top:8px">';el("cvname").textContent="portada encontrada"}}
+function openAdd(){el("modal2").innerHTML='<h2>Añadir libro</h2>'+
+  '<div class="fld"><label>ISBN (código de barras)</label><div class="row"><input id="f_isbn" class="in" inputmode="numeric" placeholder="978…"><button class="btn ghost" id="b_scan">Escanear</button><button class="btn ghost" id="b_isbn">Buscar</button></div></div>'+
+  '<div class="fld"><label>Título</label><input id="f_t" class="in"></div>'+
+  '<div class="fld"><label>Autor</label><input id="f_a" class="in"></div>'+
+  '<div class="fld"><label>Editorial</label><input id="f_e" class="in"></div>'+
+  '<div class="fld"><label>Categoría</label><input id="f_c" class="in" list="catlist" placeholder="Escribe o elige"></div>'+
+  '<div class="fld"><label>Portada</label><div class="row"><button class="btn ghost" id="b_cover">Tomar / elegir foto</button><span id="cvname" class="src"></span></div><div id="cvprev"></div></div>'+
+  '<div class="dbtns"><button class="btn" id="b_save">Guardar libro</button></div><p class="src" id="addmsg"></p>';
+  ADDCOVER="";openModal2();
+  el("b_scan").onclick=()=>el("isbnPhoto").click();
+  el("b_isbn").onclick=async()=>{const v=el("f_isbn").value.trim();if(!v)return;el("addmsg").textContent="Buscando…";const d=await gLookup("isbn:"+v);el("addmsg").textContent=d?"":"No se encontró ese ISBN. Escribe los datos a mano.";fillAdd(d)};
+  el("b_cover").onclick=()=>el("coverPhoto").click();
+  el("b_save").onclick=saveAdd}
+function saveAdd(){const t=el("f_t").value.trim();if(!t){el("addmsg").textContent="Falta el título.";return}
+  const obj={t:t,a:el("f_a").value.trim(),e:el("f_e").value.trim(),c:el("f_c").value.trim()||"Sin identificar",f:"",n:"Añadido",cover:ADDCOVER||"",isbn:el("f_isbn").value.trim()};
+  applyAdds([obj]);const ad=loadAdds();ad.push(obj);saveAddsLocal(ad);rebuildUI();closeModal2();toast("“"+t+"” añadido.");ghCommitReplace(ad)}
+el("isbnPhoto").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;const code=await detectBarcode(f);
+  if(code){if(el("f_isbn"))el("f_isbn").value=code;if(el("addmsg"))el("addmsg").textContent="Buscando "+code+"…";const d=await gLookup("isbn:"+code);if(el("addmsg"))el("addmsg").textContent=d?"":"Código "+code+" no encontrado; escribe los datos.";fillAdd(d)}
+  else{if(el("addmsg"))el("addmsg").textContent="Este teléfono no pudo leer el código. Escribe el ISBN y toca Buscar."}};
+el("coverPhoto").onchange=e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;const rd=new FileReader();rd.onload=()=>{ADDCOVER=rd.result;if(el("cvprev"))el("cvprev").innerHTML='<img src="'+rd.result+'" style="height:120px;border-radius:8px;margin-top:8px">';if(el("cvname"))el("cvname").textContent="foto lista"};rd.readAsDataURL(f)};
+function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
+  '<p class="src">Para que los libros y videos que agreguen se guarden en línea y los vea todo el mundo. El token se guarda solo en este teléfono.</p>'+
+  '<div class="fld"><label>Usuario/Org de GitHub</label><input id="s_owner" class="in" value="'+esc(GH.owner||"")+'"></div>'+
+  '<div class="fld"><label>Repositorio</label><input id="s_repo" class="in" value="'+esc(GH.repo||"")+'"></div>'+
+  '<div class="fld"><label>Rama</label><input id="s_branch" class="in" value="'+esc(GH.branch||"main")+'"></div>'+
+  '<div class="fld"><label>Token (fine-grained, solo este repo, permiso Contents: Read and write)</label><input id="s_token" class="in" type="password" placeholder="'+(ghToken()?"•••• guardado ••••":"github_pat_…")+'"></div>'+
+  '<div class="dbtns"><button class="btn" id="s_save">Guardar</button><button class="btn ghost" id="s_test">Probar conexión</button></div><p class="src" id="s_msg"></p>';
+  openModal2();
+  el("s_save").onclick=()=>{try{localStorage.setItem("gh_owner",el("s_owner").value.trim());localStorage.setItem("gh_repo",el("s_repo").value.trim());localStorage.setItem("gh_branch",el("s_branch").value.trim()||"main");const tk=el("s_token").value.trim();if(tk)localStorage.setItem("gh_token",tk);GH.owner=el("s_owner").value.trim();GH.repo=el("s_repo").value.trim();GH.branch=el("s_branch").value.trim()||"main";el("s_msg").textContent="Guardado.";toast("Ajustes guardados.")}catch(e){el("s_msg").textContent="No se pudo guardar."}};
+  el("s_test").onclick=async()=>{el("s_msg").textContent="Probando…";const ok=await ghTest();el("s_msg").textContent=ok?"Conexión OK, con permiso de escritura.":"No se pudo (revisa usuario/repo/token y su acceso a ese repo)."}}
+async function ghTest(){const tk=ghToken();if(!tk||!GH.owner||!GH.repo)return false;try{const r=await fetch('https://api.github.com/repos/'+GH.owner+'/'+GH.repo,{headers:{Authorization:'Bearer '+tk}});if(!r.ok)return false;const j=await r.json();return !!j.permissions&&(j.permissions.push||j.permissions.admin)}catch(e){return false}}
+async function ghCommitReplace(adds){const tk=ghToken();if(!tk||!GH.owner||!GH.repo)return;const api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/books.json';
+  try{let sha=null;const r=await fetch(api+'?ref='+GH.branch,{headers:{Authorization:'Bearer '+tk}});if(r.ok){const j=await r.json();sha=j.sha}
+    const body={message:'Actualizar biblioteca ('+adds.length+' añadidos)',content:btoa(unescape(encodeURIComponent(JSON.stringify({added:adds},null,2)))),branch:GH.branch};if(sha)body.sha=sha;
+    const put=await fetch(api,{method:'PUT',headers:{Authorization:'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(put.ok)toast("Guardado en GitHub: ya lo verán todos.");else{const e=await put.json().catch(()=>({}));toast("GitHub: "+(e.message||put.status))}}catch(e){toast("No se pudo conectar con GitHub.")}}
+el("gear").onclick=openSettings;el("addBtn").onclick=openAdd;
+applyAdds(loadAdds());rebuildUI();
+if(GH.owner&&GH.repo){fetch('https://raw.githubusercontent.com/'+GH.owner+'/'+GH.repo+'/'+GH.branch+'/books.json?_='+Date.now()).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.added){applyAdds(j.added);rebuildUI()}}).catch(()=>{})}
+
+
+/* thumbnails + preload banner */
+let thumbObs=null;
+function ensureObs(){if(thumbObs||!("IntersectionObserver"in window))return;thumbObs=new IntersectionObserver(es=>{es.forEach(en=>{if(en.isIntersecting){const t=en.target;thumbObs.unobserve(t);loadThumb(+t.dataset.i,t)}})},{rootMargin:"300px"})}
+function attachThumbs(){ensureObs();document.querySelectorAll("#list .thumb").forEach(t=>{if(t.style.backgroundImage)return;if(thumbObs)thumbObs.observe(t);else loadThumb(+t.dataset.i,t)})}
+async function loadThumb(i,elm){if(!elm)return;const b=BOOKS[i];if(!b)return;const c=(CACHE["gb:"+i]||{}).cover||b.cover;if(c){elm.style.backgroundImage="url('"+c+"')";return}
+  if(location.protocol==="file:")return;try{const info=await lookupBook(b);if(info&&info.cover)elm.style.backgroundImage="url('"+info.cover+"')"}catch(e){}}
+function coversCached(){let n=0;for(let i=0;i<BOOKS.length;i++){if((CACHE["gb:"+i]||{}).cover)n++;if(n>=25)break}return n}
+function showBanner(){const bn=el("coverBanner");if(!bn)return;bn.style.display=(coversCached()>=25||location.protocol==="file:")?"none":"flex"}
+(function(){const c=el("cbanBtn");if(c)c.onclick=async()=>{c.disabled=true;const txt=el("cbanTxt");await enrichAll((d,t)=>{if(txt)txt.textContent="Cargando portadas… "+d+"/"+t});if(txt)txt.textContent="¡Listo!";render();setTimeout(()=>{const bn=el("coverBanner");if(bn)bn.style.display="none"},1200)};showBanner()})();
+
+</script>
+</body>
+</html>
