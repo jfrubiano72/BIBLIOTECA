@@ -356,6 +356,7 @@ body.ro #newShelfBtn,body.ro #shelfNewPhoto,body.ro [data-act="ai"],body.ro [dat
       <button class="btn" id="enrichBtn">Cargar portadas y datos</button>
       <button class="btn ghost" id="aiBulk">✨ Generar sinopsis faltantes con IA</button>
       <button class="btn" id="coverBulk" style="margin-top:8px">🖼 Buscar portadas faltantes</button>
+      <p class="src">Busca en Open Library, Apple Books, Google y Amazon. Puede tardar; déjalo corriendo con la pantalla encendida. Vuelve a tocarlo para detenerlo.</p>
       <p class="src" id="enrStat"></p>
       <div class="prog" id="prog"><div class="pfill" id="pfill"></div></div>
       <div id="mByYear" style="margin-top:14px"></div>
@@ -364,7 +365,7 @@ body.ro #newShelfBtn,body.ro #shelfNewPhoto,body.ro [data-act="ai"],body.ro [dat
   <footer>
     <img id="footSeal" class="footseal" src="sello.png" alt="Sello de la Biblioteca Marca y Mente">
     <div>Marca y Mente · catálogo generado el 24/07/2026 · 315 libros</div>
-    <div id="verLine" style="margin-top:4px;font-size:11px;color:#B4AEA1">versión 2026.07.24-04:23 (hora Colombia)</div>
+    <div id="verLine" style="margin-top:4px;font-size:11px;color:#B4AEA1">versión 2026.07.24-09:07 (hora Colombia)</div>
   </footer>
 </main>
 
@@ -524,7 +525,7 @@ function gbCooling(){return Date.now()<GB_COOL}
 function setCool(ms){GB_COOL=Date.now()+ms;try{localStorage.setItem("gb_cool",""+GB_COOL)}catch(e){}}
 async function fetchJSON(u,tries){tries=tries||2;let wait=500;
   for(let k=0;k<tries;k++){try{const r=await fetch(u);
-    if(r.status===429){setCool(180000);throw new Error("429")}
+    if(r.status===429){setCool(900000);throw new Error("429")}
     if(r.status>=500){await sleep(wait);wait*=2.2;continue}
     if(!r.ok)throw new Error("http"+r.status);return await r.json()}
    catch(e){if((""+e.message)==="429")throw e;if(k===tries-1)throw e;await sleep(wait);wait*=2.2}}
@@ -849,7 +850,7 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
       '<p class="src"><a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener"><b>Obtener una clave →</b></a> · Modelo: <input id="s_aimodel" class="in" style="display:inline-block;width:auto;padding:4px 8px;font-size:13px" value="'+esc(aiModel())+'"></p></div>'+
     '<div class="dbtns"><button class="btn" id="s_aisave">Guardar clave</button><button class="btn ghost" id="s_aitest">Probar IA</button></div><p class="src" id="aiMsg"></p></section>'+
   '<section><h3>Aplicación</h3>'+
-    '<p class="src">Versión instalada: <b>2026.07.24-04:23</b></p>'+
+    '<p class="src">Versión instalada: <b>2026.07.24-09:07</b></p>'+
     '<p class="src" id="syncState"></p><div class="dbtns"><button class="btn" id="s_pub">Publicar todo ahora</button><button class="btn ghost" id="s_meta">Publicar sinopsis y portadas</button><button class="btn ghost" id="s_share">Compartir la biblioteca</button><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button><button class="btn ghost" id="s_reset">Borrar datos descargados</button><button class="btn ghost" id="s_restore">Libros eliminados</button><button class="btn ghost" id="s_ro"></button></div><p class="src">El modo solo lectura oculta los botones de editar: útil si prestas el teléfono o lo muestras en clase.</p><div class="src" id="diagOut"></div>'+
     '<p class="src">La app se actualiza sola al abrirla con conexión. Si algo no se ve nuevo, toca “Buscar actualizaciones”.</p></section>';
   openModal2();
@@ -2017,7 +2018,7 @@ function showComp(k){const m=compStats();const arr=m[k]||[];
 
 
 /* ===== control de versión visible y fiable ===== */
-const APP_VER="2026.07.24-04:23";
+const APP_VER="2026.07.24-09:07";
 async function checkVersion(silent){
   try{const r=await fetch("version.json?_="+Date.now(),{cache:"no-store"});
     if(!r.ok)return null;const j=await r.json();
@@ -2141,37 +2142,83 @@ function editBio(name){if(!name){alert("Este libro no tiene autor asignado.");re
 (function(){const o=bioOver();Object.keys(o).forEach(n=>{CACHE["wk:"+n]={bio:o[n],photo:(CACHE["wk:"+n]||{}).photo||"",link:"",_done:true,mine:1}});
   if(Object.keys(o).length)saveCache()})();
 /* ===== búsqueda masiva solo de portadas ===== */
+function titleVariantsCov(b){const out=[b.t];
+  const cut=(b.t||"").split(/[:–—]|\s-\s/)[0].trim();if(cut&&cut.length>3&&cut!==b.t)out.push(cut);
+  const np=(b.t||"").replace(/\([^)]*\)/g,"").replace(/[¡!¿?#]/g,"").trim();if(np&&out.indexOf(np)<0)out.push(np);
+  return out}
+async function olCover(b,info){const a=firstAuthor(b.a);
+  for(const t of titleVariantsCov(b)){
+    for(const withA of (a?[true,false]:[false])){
+      try{const u='https://openlibrary.org/search.json?limit=3&fields=cover_i,isbn,title,author_name&title='+encodeURIComponent(t)+(withA?'&author='+encodeURIComponent(a):'');
+        const j=await fetchJSON(u,2);const docs=(j&&j.docs)||[];
+        for(const d of docs){
+          if(d.cover_i){info.cover='https://covers.openlibrary.org/b/id/'+d.cover_i+'-L.jpg';
+            if(d.isbn&&d.isbn[0])info.isbn=d.isbn[0];return true}
+          if(d.isbn&&d.isbn.length){for(const is of d.isbn.slice(0,3)){
+            const u2='https://covers.openlibrary.org/b/isbn/'+is+'-L.jpg';
+            if(await imgOK(u2)){info.cover=u2;info.isbn=is;return true}}}}
+      }catch(e){}
+      await sleep(120)}}
+  return false}
+async function appleCover(b,info){const a=firstAuthor(b.a);
+  for(const t of titleVariantsCov(b).slice(0,2)){
+    const term=t+(a?" "+a:"");
+    for(const media of ["ebook","audiobook"]){
+      try{const j=await fetchJSON('https://itunes.apple.com/search?media='+media+'&limit=3&country=ES&term='+encodeURIComponent(term),2);
+        const rs=(j&&j.results)||[];
+        for(const r of rs){
+          const nt=norm(r.trackName||r.collectionName||"");
+          if(nt.indexOf(norm(t).slice(0,10))<0)continue;
+          const art=r.artworkUrl100||r.artworkUrl60;
+          if(art){info.cover=art.replace(/\/\d+x\d+bb\./,"/600x600bb.");return true}}
+      }catch(e){}
+      await sleep(150)}}
+  return false}
 async function coverOnly(b){const key="gb:"+b.id;const c=CACHE[key]||{};
   if(c.cover)return true;
   const a=firstAuthor(b.a);const info={};
-  if(!gbCooling()){
+  try{if(await olCover(b,info)){}}catch(e){}
+  if(!info.cover){try{await appleCover(b,info)}catch(e){}}
+  if(!info.cover&&!gbCooling()){
     for(const q of [ 'intitle:"'+b.t+'"'+(a?'+inauthor:"'+a+'"':''), b.t+" "+(a||"") ]){
       try{const j=await fetchJSON('https://www.googleapis.com/books/v1/volumes?q='+encodeURIComponent(q)+'&maxResults=5&country=US');
-        const items=j.items||[];
-        for(const it of items){const vi=it.volumeInfo;if(vi&&vi.imageLinks){
-          info.cover=(vi.imageLinks.thumbnail||vi.imageLinks.smallThumbnail||"").replace("http://","https://").replace("&edge=curl","");
-          if(vi.industryIdentifiers){const i13=vi.industryIdentifiers.find(x=>x.type==="ISBN_13"),i10=vi.industryIdentifiers.find(x=>x.type==="ISBN_10");
-            info.isbn=(i13&&i13.identifier)||(i10&&i10.identifier)||""}
-          break}}
+        for(const it of (j.items||[])){const vi=it.volumeInfo;
+          if(vi&&vi.imageLinks){info.cover=(vi.imageLinks.thumbnail||vi.imageLinks.smallThumbnail||"").replace("http://","https://").replace("&edge=curl","");
+            if(vi.industryIdentifiers){const i13=vi.industryIdentifiers.find(x=>x.type==="ISBN_13"),i10=vi.industryIdentifiers.find(x=>x.type==="ISBN_10");
+              info.isbn=(i13&&i13.identifier)||(i10&&i10.identifier)||""}
+            break}}
         if(info.cover)break}catch(e){}}}
-  if(!info.cover){try{await olLookup(b,info)}catch(e){}}
-  if(!info.cover&&info.isbn){try{const am=await amazonCover(info.isbn);if(am)info.cover=am}catch(e){}}
-  if(!info.cover&&c.isbn){try{const am=await amazonCover(c.isbn);if(am)info.cover=am}catch(e){}}
-  if(info.cover){CACHE[key]=Object.assign({},c,{cover:info.cover,isbn:info.isbn||c.isbn});saveCache();return true}
-  return false}
-async function coverBulk(){const btn=el("coverBulk");const st=el("enrStat");
-  const pend=BOOKS.filter(b=>!(COVERS[b.id]||COVEROVER[b.id]||(CACHE["gb:"+b.id]||{}).cover||b.cover));
-  if(!pend.length){if(st)st.textContent="Todos los libros ya tienen portada.";return}
-  btn.disabled=true;let ok=0,done=0;const lote=pend.slice(0,60);
-  for(const b of lote){
-    try{if(await coverOnly(b))ok++}catch(e){}
-    done++;btn.textContent="Buscando "+done+"/"+lote.length+"…";
-    if(st)st.textContent="Portadas nuevas: "+ok+(gbCooling()?" · Google limitó el ritmo":"");
-    if(done%10===0)render();
-    await sleep(gbCooling()?2500:650)}
-  render();btn.disabled=false;btn.textContent="🖼 Buscar portadas faltantes";
-  const faltan=BOOKS.filter(b=>!(COVERS[b.id]||COVEROVER[b.id]||(CACHE["gb:"+b.id]||{}).cover||b.cover)).length;
-  if(st)st.innerHTML="<b>"+ok+" portadas nuevas.</b> Faltan "+faltan+" · vuelve a tocar para seguir.";
+  const isbn=info.isbn||c.isbn;
+  if(!info.cover&&isbn){try{const am=await amazonCover(isbn);if(am)info.cover=am}catch(e){}}
+  if(!info.cover&&isbn){const u='https://covers.openlibrary.org/b/isbn/'+isbn+'-L.jpg';
+    try{if(await imgOK(u))info.cover=u}catch(e){}}
+  if(info.cover){CACHE[key]=Object.assign({},c,{cover:info.cover,isbn:isbn||""});saveCache();return true}
+  CACHE[key]=Object.assign({},c,{isbn:isbn||c.isbn});return false}
+var COVRUN=false;
+function coversMissing(){return BOOKS.filter(b=>!(COVERS[b.id]||COVEROVER[b.id]||(CACHE["gb:"+b.id]||{}).cover||b.cover))}
+async function coverBulk(){
+  const btn=el("coverBulk");const st=el("enrStat");
+  if(COVRUN){COVRUN=false;btn.textContent="🖼 Buscar portadas faltantes";return}
+  COVRUN=true;btn.textContent="⏹ Detener búsqueda";
+  let total=0,vueltas=0;
+  while(COVRUN){
+    const pend=coversMissing();
+    if(!pend.length){if(st)st.innerHTML="<b>¡Listo! Todos los libros tienen portada.</b>";break}
+    let ok=0,done=0;
+    for(const b of pend){
+      if(!COVRUN)break;
+      try{if(await coverOnly(b)){ok++;total++}}catch(e){}
+      done++;
+      const falt=pend.length-ok;
+      if(st)st.innerHTML="Buscando <b>"+done+"/"+pend.length+"</b> · encontradas en esta vuelta: <b>"+ok+"</b> · total nuevas: "+total+(gbCooling()?" · (Google limitado, uso otras fuentes)":"");
+      if(done%8===0){render();renderComp()}
+      await sleep(260)}
+    render();renderComp();renderMetrics();
+    if(syncOn())await publishMeta();
+    vueltas++;
+    if(ok===0){if(st)st.innerHTML="<b>"+total+" portadas nuevas.</b> Faltan "+coversMissing().length+" que no están en ninguna base: ponlas con “🖼 Cambiar portada”.";break}
+    if(vueltas>=6)break}
+  COVRUN=false;btn.disabled=false;btn.textContent="🖼 Buscar portadas faltantes";
   if(syncOn())publishMeta()}
 (function(){const b=el("coverBulk");if(b)b.onclick=coverBulk;})();
 
