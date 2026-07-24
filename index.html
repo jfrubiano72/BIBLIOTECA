@@ -258,11 +258,12 @@ textarea.in{font-family:inherit;line-height:1.45;resize:vertical}
 
   <section class="view" id="v-red">
     <div class="view-head"><div><h2>Mapa de conexiones</h2><p id="redSub">Toca un punto para ver con qué se conecta</p></div>
-      <div class="segw"><button class="seg on" id="rWords">Palabras</button><button class="seg" id="rAuth">Autores</button></div>
+      <div class="segw"><button class="seg on" id="rWords">Palabras</button><button class="seg" id="rAuth">Autores</button><button class="seg" id="rCtry">Países</button></div>
     </div>
     <input id="redQ" class="ainput" type="search" placeholder="Escribe una palabra (ej: cerebro, marca, atención)">
     <select id="redAuthor" class="catsel" style="color:var(--ink);background:#fff;border-color:var(--line);margin-bottom:10px" aria-label="Elegir autor"></select>
     <div class="redwrap"><canvas id="redCv"></canvas></div>
+    <div class="dbtns" style="margin-top:10px"><button class="btn ghost" id="redReset">↺ Volver al mapa general</button></div>
     <div id="redInfo" class="redinfo"></div>
   </section>
 
@@ -277,12 +278,18 @@ textarea.in{font-family:inherit;line-height:1.45;resize:vertical}
     <div class="panel"><h3>Autores con más libros</h3><div id="mByAuthor"></div></div>
     <div class="panel"><h3>Por editorial</h3><div id="mByEd"></div></div>
     <div class="panel"><h3>Más datos</h3><div id="mExtra"></div></div>
+    <div class="panel"><h3>Verificador del catálogo</h3>
+      <p class="src">Revisa duplicados, posiciones repetidas y datos por confirmar.</p>
+      <button class="btn" id="verifyBtn">Revisar catálogo</button>
+      <div id="verifyOut" style="margin-top:12px"></div>
+    </div>
     <div class="panel"><h3>Autores por país</h3>
       <p class="src" id="ctrStat">Los países se deducen de las biografías. Toca el botón para buscarlas.</p>
       <div class="dbtns" style="margin-bottom:10px"><button class="btn" id="ctrBtn">Buscar países de los autores</button></div>
       <div class="prog" id="ctrProg"><div class="pfill" id="ctrFill"></div></div>
       <div class="mapwrap"><canvas id="worldCv"></canvas></div>
       <select id="ctrSel" class="catsel" style="color:var(--ink);background:#fff;border-color:var(--line);margin:12px 0" aria-label="País"></select>
+      <select id="ctrAuth" class="catsel" style="color:var(--ink);background:#fff;border-color:var(--line);margin-bottom:12px" aria-label="Autor"></select>
       <div id="ctrList"></div>
     </div>
     <div class="enrich"><h3 style="margin:0 0 8px;font-size:16px;font-weight:600">Portadas, sinopsis y años</h3>
@@ -751,11 +758,15 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
   '<div class="fld"><label>Token (fine-grained, solo este repo, permiso Contents: Read and write)</label><input id="s_token" class="in" type="password" placeholder="'+(ghToken()?"•••• guardado ••••":"github_pat_…")+'"></div>'+
   '<div class="dbtns"><button class="btn" id="s_save">Guardar</button><button class="btn ghost" id="s_test">Probar conexión</button></div><p class="src" id="s_msg"></p>'+
   '<section><h3>Aplicación</h3>'+
-    '<p class="src">Versión instalada: <b>2026.07.24-0500</b></p>'+
-    '<div class="dbtns"><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button></div><div class="src" id="diagOut"></div>'+
+    '<p class="src">Versión instalada: <b>2026.07.24-0511</b></p>'+
+    '<p class="src" id="syncState"></p><div class="dbtns"><button class="btn" id="s_pub">Publicar todo ahora</button><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button></div><div class="src" id="diagOut"></div>'+
     '<p class="src">La app se actualiza sola al abrirla con conexión. Si algo no se ve nuevo, toca “Buscar actualizaciones”.</p></section>';
   openModal2();
   el("s_save").onclick=()=>{try{localStorage.setItem("gh_owner",el("s_owner").value.trim());localStorage.setItem("gh_repo",el("s_repo").value.trim());localStorage.setItem("gh_branch",el("s_branch").value.trim()||"main");const tk=el("s_token").value.trim();if(tk)localStorage.setItem("gh_token",tk);GH.owner=el("s_owner").value.trim();GH.repo=el("s_repo").value.trim();GH.branch=el("s_branch").value.trim()||"main";el("s_msg").textContent="Guardado.";toast("Ajustes guardados.")}catch(e){el("s_msg").textContent="No se pudo guardar."}};
+  el("s_pub").onclick=publishAll;
+  (function(){const st=el("syncState");if(!st)return;
+    st.innerHTML=syncOn()?'<b style="color:#2E8B7B">Sincronización activa</b> · tus portadas y correcciones se publican en GitHub.'
+      :'<b style="color:#C0642F">Sin sincronizar.</b> Las portadas que tomes quedan solo en este teléfono y se pierden si borras la app. Pon el token abajo y toca “Publicar todo ahora”.'})();
   el("s_upd").onclick=forceUpdate;
   el("s_diag").onclick=async()=>{el("diagOut").innerHTML="Probando…";const r=await diagnose();
     el("diagOut").innerHTML="<b>Diagnóstico</b><br>"+r.map(x=>"• "+esc(x)).join("<br>")};
@@ -907,6 +918,7 @@ function renderMap(){detectPhotos().then(()=>{const g=el("shelfGrid");if(g)g.que
 el("shelfGrid").addEventListener("click",e=>{const sh=e.target.closest("[data-shelf]");if(!sh)return;
   SHELF=(SHELF===sh.dataset.shelf)?null:sh.dataset.shelf;renderMap()});
 el("shelfList").addEventListener("click",e=>{const r=e.target.closest("[data-openb]");if(r)openDetail(+r.dataset.openb)});
+el("photoBox").addEventListener("click",e=>{const r=e.target.closest("[data-openb]");if(r){closePhoto();openDetail(+r.dataset.openb)}});
 coversLoadAll().then(m=>{COVERS=m;if(Object.keys(m).length)render()});
 
 
@@ -929,6 +941,11 @@ function openPhotoShelf(f,b){
   el("photoBox").innerHTML='<h2>Estante · Foto '+f+'</h2>'+cap+
     '<div class="photowrap" id="pw"><img id="shelfImg" src="'+photoURL(f)+'" alt="Foto del estante '+f+'"></div>'+
     '<p class="src" id="photoMsg">Toca la imagen para acercar. '+(b?('El libro está en la posición <b>'+b.p+'</b>, contando de izquierda a derecha.'):'')+'</p>';
+  const list=(shelves()[f]||[]).slice().sort((x,y)=>(x.p||0)-(y.p||0));
+  if(list.length)el("photoBox").innerHTML+='<section><h3>Orden en este estante</h3>'+
+    list.map(x=>'<div class="slot" data-openb="'+x.i+'"><span class="num">'+(x.p||"–")+'</span>'+
+      '<span class="st"><b>'+esc(x.t)+'</b><span>'+esc(x.a||"—")+'</span></span><span class="cdz">'+esc(x.id)+'</span></div>').join("")+
+    '<p class="src">Compara con la foto: si el orden no coincide, toca el libro y corrige su “lugar”.</p></section>';
   el("overlay3").classList.add("show");document.body.style.overflow="hidden";el("sheet3").scrollTop=0;
   const im=el("shelfImg"),pw=el("pw");
   if(pw)pw.onclick=()=>pw.classList.toggle("zoom");
@@ -1032,7 +1049,7 @@ function editMeta(b){formModal("Corregir libro",
     o[b.id]=m;saveMeta(o);
     b.t=m.t||b.t;b.a=m.a;if(m.f)b.f=m.f;if(m.p)b.p=m.p;if((b.n||"").indexOf("Confirmar")===0)b.n="";
     try{delete CACHE["gb:"+b.i]}catch(e){}
-    deriveData();rebuildUI();openDetail(b.i);toast("Datos corregidos.");ghSyncAll()},
+    deriveData();rebuildUI();openDetail(b.i);toast("Datos corregidos.");warnDupe(b);ghSyncAll()},
   "Corrige lo que quedó mal leído en la foto. Se guarda y se comparte con Maritza.")}
 function editSyn(b){const o=metaOver();const cur=(o[b.id]||{}).syn||(CACHE["gb:"+b.i]||{}).synopsis||"";
   formModal("Sinopsis de “"+b.t+"”",[{label:"Sinopsis",val:cur,type:"area"}],
@@ -1050,10 +1067,18 @@ function bookText(b){const m=metaOver()[b.id]||{},c=CACHE["gb:"+b.i]||{};
   return b.t+" "+b.c+" "+(c.cats?c.cats.join(" "):"")+" "+((m.syn||c.synopsis||"").slice(0,700))}
 function buildRed(mode){
   const nodes=[],links=[],idx={};
-  if(mode==="authors"){
+  if(mode==="country"){
+    const st=countryStats();const keys=Object.keys(st).sort((a,b)=>st[b].length-st[a].length);
+    keys.forEach(k=>{idx["C:"+k]=nodes.length;nodes.push({id:k,label:k,w:st[k].length*3,type:"c",cat:k})});
+    keys.forEach(k=>{st[k].slice(0,12).forEach(a=>{
+      if(idx["A:"+a]==null){idx["A:"+a]=nodes.length;nodes.push({id:a,label:a,w:AUTH[a].length,type:"a",cat:k})}
+      links.push([idx["C:"+k],idx["A:"+a],2])})});
+    for(let i=0;i<keys.length-1;i++)links.push([idx["C:"+keys[i]],idx["C:"+keys[i+1]],1]);
+  }else if(mode==="authors"){
     const top=AUTH_COUNT.slice(0,50);
     top.forEach(a=>{idx[a]=nodes.length;
-      const c=BOOKS[AUTH[a][0]].c;nodes.push({id:a,label:a,w:AUTH[a].length,type:"a",cat:c})});
+      const ctry=authorCountry(a);const c=ctry||BOOKS[AUTH[a][0]].c;
+      nodes.push({id:a,label:a,w:AUTH[a].length,type:"a",cat:c,ctry:ctry})});
     const byCat={};
     top.forEach(a=>AUTH[a].forEach(i=>{const c=BOOKS[i].c;(byCat[c]=byCat[c]||new Set()).add(a)}));
     Object.keys(byCat).forEach(c=>{const arr=[...byCat[c]];
@@ -1128,9 +1153,10 @@ function sizeRed(){const cv=RED.cv;if(!cv)return;const r=cv.parentNode.getBoundi
   cv.width=RED.W*RED.dpr;cv.height=RED.H*RED.dpr;cv.style.height=RED.H+"px";
   RED.ctx=cv.getContext("2d");RED.ctx.setTransform(RED.dpr,0,0,RED.dpr,0,0)}
 function startRed(){const cv=el("redCv");if(!cv)return;RED.cv=cv;sizeRed();fillRedAuthors();
-  if(!RED.nodes.length||RED._mode!==RED.mode){RED._mode=RED.mode;buildRed(RED.mode==="authors"?"authors":"words")}
+  if(!RED.nodes.length||RED._mode!==RED.mode){RED._mode=RED.mode;buildRed(RED.mode)}
   const syn=BOOKS.filter(b=>(metaOver()[b.id]||{}).syn||(CACHE["gb:"+b.i]||{}).synopsis).length;
-  el("redSub").textContent=RED.nodes.length+(RED.mode==="authors"?" autores":" palabras")+" · "+RED.links.length+" conexiones · gira con el dedo";
+  el("redSub").textContent=RED.nodes.length+(RED.mode==="authors"?" autores":(RED.mode==="country"?" países y autores":" palabras"))+" · "+RED.links.length+" conexiones · gira y pellizca";
+  if(RED.mode==="country"&&RED.nodes.length<2)el("redInfo").innerHTML='<div class="rcard">Primero ve a <b>Métricas → Autores por país → Buscar países de los autores</b>.</div>';
   if(RED.mode!=="authors"&&syn<30)el("redInfo").innerHTML='<div class="rcard">El mapa mejora mucho con las sinopsis: ve a <b>Métricas → Cargar portadas y datos</b>. Ahora mismo hay <b>'+syn+'</b> sinopsis guardadas.</div>';
   if(!RED.raf)loopRed()}
 function stopRed(){if(RED.raf){cancelAnimationFrame(RED.raf);RED.raf=null}}
@@ -1143,9 +1169,13 @@ function redSelect(i){RED.sel=i;const n=RED.nodes[i];if(!n){el("redInfo").innerH
   const nb=[];RED.links.forEach(l=>{if(l[0]===i)nb.push(RED.nodes[l[1]]);if(l[1]===i)nb.push(RED.nodes[l[0]])});
   nb.sort((a,b)=>b.w-a.w);
   const chips=nb.slice(0,12).map(x=>'<span class="rchip" style="border-color:'+x.col+'55" data-rnode="'+esc(x.id)+'">'+esc(x.id)+'</span>').join("");
+  if(n.type==="c"){const st=countryStats();const as=(st[n.id]||[]).slice().sort((a,b)=>AUTH[b].length-AUTH[a].length);
+    el("redInfo").innerHTML='<div class="rcard"><h4 style="color:'+n.col+'">'+esc(n.id)+'</h4>'+
+      '<div class="rmeta">'+as.length+' autores de este país</div><div class="chipline">'+
+      as.slice(0,20).map(a=>'<span class="rchip" data-rauthor2="'+esc(a)+'">'+esc(a)+' · '+AUTH[a].length+'</span>').join("")+'</div></div>';return}
   if(n.type==="a"){const ids=AUTH[n.id]||[];
     el("redInfo").innerHTML='<div class="rcard"><h4 style="color:'+n.col+'">'+esc(n.id)+'</h4>'+
-      '<div class="rmeta">'+ids.length+' libro(s) · '+nb.length+' autores conectados por temática</div>'+
+      '<div class="rmeta">'+ids.length+' libro(s)'+(n.ctry?' · '+esc(n.ctry):'')+' · '+nb.length+' conectados</div>'+
       '<div class="chipline">'+chips+'</div>'+
       '<button class="btn" data-rauthor="'+esc(n.id)+'">Ver su perfil y sus libros</button></div>'}
   else{const hits=BOOKS.filter(b=>norm(bookText(b)).includes(n.id));
@@ -1328,7 +1358,11 @@ function renderCountries(){const st=countryStats();const keys=Object.keys(st).so
   const sel=el("ctrSel");const prev=sel.value;
   sel.innerHTML='<option value="">— Todos los países —</option>'+keys.map(k=>'<option value="'+esc(k)+'">'+esc(k)+' ('+st[k].length+')</option>').join("");
   if(prev)sel.value=prev;
-  drawWorld(st,keys);showCountry(sel.value,st)}
+  fillCtrAuthors();drawWorld(st,keys);showCountry(sel.value,st)}
+function fillCtrAuthors(){const sel=el("ctrAuth");if(!sel)return;
+  const rows=AUTH_ALPHA.map(a=>({a:a,c:authorCountry(a)}));
+  sel.innerHTML='<option value="">— Ver un autor y su país ('+AUTH_ALPHA.length+') —</option>'+
+    rows.map(r=>'<option value="'+esc(r.a)+'">'+esc(r.a)+' — '+esc(r.c||"país sin definir")+'</option>').join("")}
 function showCountry(k,st){st=st||countryStats();
   if(!k){const keys=Object.keys(st).sort((a,b)=>st[b].length-st[a].length).slice(0,12);
     el("ctrList").innerHTML=keys.map(c=>'<div class="ctrrow" data-ctr="'+esc(c)+'"><span class="cn">'+esc(c)+'</span><span class="cc">'+st[c].length+' autores</span></div>').join("");return}
@@ -1357,6 +1391,7 @@ function drawWorld(st,keys){const cv=el("worldCv");if(!cv)return;
       c.fillText(k+" ("+st[k].length+")",x,y-r-4)}})}
 (function(){const b=el("ctrBtn");if(b)b.onclick=loadCountries;
   const sel=el("ctrSel");if(sel)sel.addEventListener("change",()=>{WORLD.sel=sel.value||null;renderCountries()});
+  const sa=el("ctrAuth");if(sa)sa.addEventListener("change",()=>{if(sa.value)openAuthor(sa.value)});
   const cv=el("worldCv");if(cv)cv.addEventListener("click",ev=>{const r=cv.getBoundingClientRect();
     const x=ev.clientX-r.left,y=ev.clientY-r.top;
     let hit=null;WORLD.pts.forEach(p=>{if((x-p.x)**2+(y-p.y)**2<=(p.r+8)**2)hit=p.k});
@@ -1454,6 +1489,63 @@ function coverMenu(b){
 /* galería */
 el("coverPick").onchange=e=>{const f=e.target.files&&e.target.files[0];e.target.value="";
   if(f&&PENDCOVER)saveCoverBlob(PENDCOVER,f)};
+
+
+/* ===== estado de sincronización ===== */
+function syncOn(){return !!(ghToken()&&GH.owner&&GH.repo)}
+async function publishAll(){if(!syncOn()){alert("Primero configura usuario, repositorio y token de GitHub aquí en Ajustes.");return}
+  const btn=el("s_pub");if(btn){btn.disabled=true;btn.textContent="Publicando…"}
+  let n=0;
+  try{const db=await idb();
+    const all=await new Promise(res=>{const out=[];const cur=db.transaction("covers").objectStore("covers").openCursor();
+      cur.onsuccess=e=>{const c=e.target.result;if(c){out.push(c.value);c.continue()}else res(out)};cur.onerror=()=>res(out)});
+    for(const rec of all){const code=""+rec.code;
+      if(code.indexOf("shelf:")===0){await ghUploadShelf(code.slice(6),rec.blob)}
+      else{const b=BOOKS.find(x=>x.id===code);if(b)await ghUploadCover(b,rec.blob)}
+      n++;if(btn)btn.textContent="Publicando "+n+"/"+all.length+"…";await sleep(400)}
+  }catch(e){}
+  await ghSyncAll();
+  if(btn){btn.disabled=false;btn.textContent="Publicar todo ahora"}
+  toast("Publicado: "+n+" imagen(es) y tus correcciones.")}
+/* ===== verificador ===== */
+function normTitle(t){return norm(t).replace(/[^a-z0-9ñ ]/g," ").replace(/\s+/g," ").trim()}
+function findIssues(){
+  const dup={},res={dups:[],pos:[],noShelf:[],confirm:[]};
+  BOOKS.forEach(b=>{const k=normTitle(b.t);(dup[k]=dup[k]||[]).push(b)});
+  Object.keys(dup).forEach(k=>{if(dup[k].length>1)res.dups.push(dup[k])});
+  const byShelf={};
+  BOOKS.forEach(b=>{if(!b.f)return;const k=b.f+"|"+b.p;(byShelf[k]=byShelf[k]||[]).push(b)});
+  Object.keys(byShelf).forEach(k=>{if(byShelf[k].length>1)res.pos.push(byShelf[k])});
+  BOOKS.forEach(b=>{if(!b.f)res.noShelf.push(b);
+    if((b.n||"").indexOf("Confirmar")===0)res.confirm.push(b)});
+  return res}
+function renderVerify(){const r=findIssues();
+  const grp=(title,arr,fmt)=>arr.length?('<h4 style="font-family:Fraunces,serif;font-size:16px;margin:14px 0 8px">'+title+' ('+arr.length+')</h4>'+arr.map(fmt).join("")):'';
+  const bk=b=>'<div class="ctrrow" data-vb="'+b.i+'"><span class="cn">'+esc(b.t)+'</span><span class="cc">'+esc(b.id)+' · F'+(b.f||"—")+'·'+(b.p||"—")+'</span></div>';
+  el("verifyOut").innerHTML=
+    (r.dups.length+r.pos.length+r.noShelf.length+r.confirm.length===0?'<p class="src">Todo en orden: sin duplicados ni posiciones repetidas.</p>':'')+
+    grp("Posibles duplicados (mismo título)",r.dups,g=>'<div style="margin-bottom:10px">'+g.map(bk).join("")+'</div>')+
+    grp("Dos libros en el mismo lugar",r.pos,g=>'<div style="margin-bottom:10px">'+g.map(bk).join("")+'</div>')+
+    grp("Datos por confirmar",r.confirm.slice(0,40),bk)+
+    grp("Sin estante asignado",r.noShelf.slice(0,40),bk)}
+(function(){const b=el("verifyBtn");if(b)b.onclick=renderVerify;
+  const o=el("verifyOut");if(o)o.addEventListener("click",e=>{const r=e.target.closest("[data-vb]");if(r)openDetail(+r.dataset.vb)});})();
+/* aviso de duplicado al corregir un libro */
+function warnDupe(b){const k=normTitle(b.t);
+  const others=BOOKS.filter(x=>x.i!==b.i&&normTitle(x.t)===k);
+  if(!others.length)return;
+  toast("Ojo: ya existe otro libro con ese título ("+others.map(x=>x.id).join(", ")+")")}
+/* ===== red: reiniciar y modo países ===== */
+function redReset(){RED.zoom=1;RED.rx=-0.25;RED.ry=0.5;RED.sel=null;RED.q="";
+  const q=el("redQ");if(q)q.value="";const sa=el("redAuthor");if(sa)sa.value="";
+  el("redInfo").innerHTML="";RED._mode=null;startRed()}
+(function(){const b=el("redReset");if(b)b.onclick=redReset;})();
+(function(){const c=el("rCtry");if(!c)return;
+  c.onclick=()=>{RED.mode="country";c.classList.add("on");el("rWords").classList.remove("on");el("rAuth").classList.remove("on");
+    el("redInfo").innerHTML="";RED._mode=null;startRed()};
+  const w=el("rWords"),a=el("rAuth");
+  const off=()=>c.classList.remove("on");
+  if(w)w.addEventListener("click",off);if(a)a.addEventListener("click",off)})();
 
 </script>
 </body>
