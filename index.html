@@ -193,6 +193,7 @@ footer{text-align:center;color:#9A9384;font-size:12px;padding:6px 16px 24px}
         <div><h1>Marca y Mente</h1><div class="sub">Maritza &amp; Javier Fernando</div></div>
       </div>
       <div class="total"><span class="num" id="totalNum">0</span><span class="lbl" id="totalLbl">libros</span></div>
+      <button id="installBtn" class="gearbtn" style="display:none" aria-label="Instalar app">⬇</button>
       <button id="gear" class="gearbtn" aria-label="Ajustes">⚙</button>
     </div>
     <div class="search" id="searchWrap">
@@ -284,7 +285,7 @@ const firstAuthor=s=>splitAuthors(s)[0]||"";
 const color=c=>COLORS[c]||DEFAULT_COLOR; const el=id=>document.getElementById(id);
 let CACHE={};try{CACHE=JSON.parse(localStorage.getItem("bib_cache_v2")||"{}")}catch(e){CACHE={}}
 function saveCache(){try{localStorage.setItem("bib_cache_v2",JSON.stringify(CACHE))}catch(e){}}
-let state={q:"",cat:"",author:"",ed:"",sort:"t",view:"explorar",authSort:"alpha",authQ:""};
+let state={q:"",cat:"",author:"",ed:"",dec:"",sort:"t",view:"explorar",authSort:"alpha",authQ:""};
 var thumbObs=null;var COVERS={};var COVEROVER={};
 let CURRENT=null, VIDBOOKS=new Set();
 
@@ -324,15 +325,16 @@ function hl(text,q){if(!q)return esc(text);const nt=norm(text),nq=norm(q);let o=
 function filtered(){const nq=norm(state.q.trim());
   let out=BOOKS.filter(b=>{if(state.author&&!splitAuthors(b.a).includes(state.author))return false;
     if(state.ed&&b.e!==state.ed)return false;
+    if(state.dec){const y=bookYear(b);if(!y||(Math.floor(y/10)*10)+"s"!==state.dec)return false}
     if(state.cat&&b.c!==state.cat)return false;if(nq&&!b._s.includes(nq))return false;return true});
-  const k=state.sort;const yr=x=>{const y=+((CACHE["gb:"+x.i]||{}).year);return y||-1};
+  const k=state.sort;const yr=x=>bookYear(x)||-1;
   out.sort((a,b)=>{if(k==="y"){const d=yr(b)-yr(a);return d||a.t.localeCompare(b.t,"es")}
     if(k==="c")return a.c.localeCompare(b.c,"es")||a.t.localeCompare(b.t,"es");
     if(k==="a")return (a.a||"~").localeCompare(b.a||"~","es")||a.t.localeCompare(b.t,"es");
     return a.t.localeCompare(b.t,"es")});return out}
 function render(){const rows=filtered(),q=state.q.trim();
-  const anyF=!!(state.author||state.ed);el("authbar").classList.toggle("show",anyF);
-  if(anyF)el("filtWho").innerHTML=(state.author?'Autor: <b>'+esc(state.author)+'</b>':'')+(state.author&&state.ed?' · ':'')+(state.ed?'Editorial: <b>'+esc(state.ed)+'</b>':'');
+  const anyF=!!(state.author||state.ed||state.dec);el("authbar").classList.toggle("show",anyF);
+  if(anyF)el("filtWho").innerHTML=(state.author?'Autor: <b>'+esc(state.author)+'</b>':'')+(state.author&&state.ed?' · ':'')+(state.ed?'Editorial: <b>'+esc(state.ed)+'</b>':'')+((state.author||state.ed)&&state.dec?' · ':'')+(state.dec?'Década: <b>'+esc(state.dec)+'</b>':'');
   el("totalNum").textContent=rows.length;
   el("totalLbl").textContent=state.cat?"en categoría":(state.author?"de este autor":(state.ed?"de esta editorial":(state.q?"encontrados":"libros")));
   if(catSel&&catSel.value!==state.cat)catSel.value=state.cat;
@@ -371,7 +373,7 @@ function renderMetrics(){el("mTotal").textContent=TOTAL;el("mAuthors").textConte
   renderExtraMetrics()}
 function renderExtraMetrics(){const box=el("mExtra");if(!box)return;
   let pages=[],years=[],langs={};
-  BOOKS.forEach(b=>{const c=CACHE["gb:"+b.i]||{};if(c.pages)pages.push(c.pages);if(c.year&&/^\d{4}$/.test(c.year))years.push(+c.year);if(c.lang)langs[c.lang]=(langs[c.lang]||0)+1});
+  BOOKS.forEach(b=>{const c=CACHE["gb:"+b.i]||{};if(c.pages)pages.push(c.pages);const y=bookYear(b);if(y)years.push(y);if(c.lang)langs[c.lang]=(langs[c.lang]||0)+1});
   if(!pages.length&&!years.length){box.innerHTML='<p style="color:#9A9384;font-size:13px;margin:0">Carga las portadas y datos para ver estas métricas.</p>';return}
   const sum=pages.reduce((a,b)=>a+b,0);const avg=pages.length?Math.round(sum/pages.length):0;
   const oldB=years.length?Math.min.apply(null,years):null,newB=years.length?Math.max.apply(null,years):null;
@@ -452,23 +454,31 @@ async function lookupBook(b,force){const key="gb:"+b.i;const c=CACHE[key];
 async function lookupAuthor(name,force){const key="wk:"+name;const c=CACHE[key];
   if(c&&!force&&(c.bio||c._done))return c;
   let info={};let neterr=false;
-  async function summary(t){const r=await fetch('https://es.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(t));
+  function nameMatches(nm,title,extract){
+    const words=norm(nm).split(/\s+/).filter(w=>w.length>2);
+    if(!words.length)return false;
+    const hay=norm(title+" "+(extract||"").slice(0,220));
+    const hits=words.filter(w=>hay.includes(w)).length;
+    const surname=words[words.length-1];
+    return hits>=Math.min(2,words.length) && norm(title).includes(surname)}
+  async function summary(t,nm){const r=await fetch('https://es.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(t));
     if(r.status===404)return null;if(!r.ok)throw new Error("http");const j=await r.json();
     if(!j.extract||(j.type||"").includes("disambiguation"))return null;
+    if(nm&&!nameMatches(nm,j.title||t,j.extract))return null;
     return{bio:j.extract,link:j.content_urls?j.content_urls.desktop.page:"",photo:(j.thumbnail&&j.thumbnail.source)||(j.originalimage&&j.originalimage.source)||""}}
-  try{const d=await summary(name);if(d)info=d}catch(e){neterr=true}
+  try{const d=await summary(name,name);if(d)info=d}catch(e){neterr=true}
   if(!info.bio){try{const r=await fetch('https://es.wikipedia.org/w/api.php?action=opensearch&limit=3&format=json&origin=*&search='+encodeURIComponent(name));
     if(r.ok){const j=await r.json();const cands=j[1]||[];
-      for(const t of cands){try{const d=await summary(t);if(d){info=d;break}}catch(e){}}}else neterr=true}catch(e){neterr=true}}
+      for(const t of cands){try{const d=await summary(t,name);if(d){info=d;break}}catch(e){}}}else neterr=true}catch(e){neterr=true}}
   if(!info.bio){try{const r=await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(name));
-    if(r.ok){const j=await r.json();if(j.extract&&!(j.type||"").includes("disambiguation"))
+    if(r.ok){const j=await r.json();if(j.extract&&!(j.type||"").includes("disambiguation")&&nameMatches(name,j.title||name,j.extract))
       info={bio:j.extract,link:j.content_urls?j.content_urls.desktop.page:"",photo:(j.thumbnail&&j.thumbnail.source)||""}}}catch(e){neterr=true}}
   if(!info.bio&&neterr){info.neterr=true;return info}
   info._done=true;CACHE[key]=info;saveCache();return info}
 function bioHTML(info,name,retryAct){
   if(info.bio){const ph=info.photo?'<img class="authpic" src="'+info.photo+'" alt="'+esc(name)+'">':'';
     return ph+esc(info.bio)+(info.link?' <a class="linkbtn" href="'+info.link+'" target="_blank" rel="noopener">Wikipedia</a>':'')+
-      ' <a class="linkbtn" href="https://www.youtube.com/results?search_query='+encodeURIComponent(name)+'" target="_blank" rel="noopener">Videos del autor</a>'}
+      '<div class="src">¿No corresponde a este autor? <a href="https://www.google.com/search?q='+encodeURIComponent(name+' autor libro')+'" target="_blank" rel="noopener">Buscar en Google</a></div>'}
   if(info.neterr)return '<span class="muted">No se pudo conectar para traer la biografía.</span> <button class="linkbtn" data-act="'+retryAct+'">Reintentar</button>';
   return '<span class="muted">No se encontró biografía de este autor.</span> <a class="linkbtn" href="https://es.wikipedia.org/w/index.php?search='+encodeURIComponent(name)+'" target="_blank" rel="noopener">Buscar en Wikipedia</a>'+
     ' <a class="linkbtn" href="https://www.youtube.com/results?search_query='+encodeURIComponent(name)+'" target="_blank" rel="noopener">Videos del autor</a>'}
@@ -476,6 +486,7 @@ function bioHTML(info,name,retryAct){
 function openDetail(i){CURRENT=i;CUR_AUTHOR=null;const b=BOOKS[i];const col=color(b.c);const enc=encodeURIComponent(b.t+' '+(b.a||''));
   const facts=[b.e?'<span class="tag">'+esc(b.e)+'</span>':'','<span class="tag cat clk" style="background:'+col+'" data-cat="'+esc(b.c)+'">'+esc(b.c)+' ›</span>',
     '<span class="tag code clk" data-photo="1">'+esc(b.id)+'</span>',
+    '<span class="tag clk" data-act="edityear">\u270E año: '+(bookYear(b)||"—")+'</span>',
     b.f?'<span class="tag clk" data-photo="1">\uD83D\uDCCD Foto '+b.f+' · lugar '+b.p+'</span>':'',b.n?'<span class="tag flag">'+esc(b.n)+'</span>':'',
     '<span class="tag clk" data-act="editcat">✎ cambiar temática</span>'].join("");
   const byline=b.a?'Por <a data-author="'+esc(firstAuthor(b.a))+'">'+esc(b.a)+'</a>':'<span class="muted">Autor por confirmar</span>';
@@ -491,7 +502,9 @@ function openDetail(i){CURRENT=i;CUR_AUTHOR=null;const b=BOOKS[i];const col=colo
       '<a class="buybtn" target="_blank" rel="noopener" href="https://www.goodreads.com/search?q='+enc+'">Goodreads</a>'+
       '</div><p class="src">Enlaces de búsqueda para ver disponibilidad y precio.</p></section>'+
     '<section><h3>Videos</h3><div id="dyt"></div><div id="dvids"><span class="spinner"></span>Cargando…</div>'+
-      '<div class="dbtns" style="margin-top:10px"><button class="btn ghost" data-act="rec">Grabar video</button><button class="btn ghost" data-act="yt">Enlace de YouTube</button><a class="btn ghost" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query='+enc+'">Buscar en YouTube</a></div>'+
+      '<div class="dbtns" style="margin-top:10px"><a class="btn ghost" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query='+encodeURIComponent(b.t+" "+(b.a||"")+" libro resumen")+'">\u25B6 Videos del libro</a>'+
+      (b.a?'<a class="btn ghost" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query='+encodeURIComponent(firstAuthor(b.a)+" entrevista conferencia")+'">\u25B6 Videos del autor</a>':'')+
+      '<button class="btn ghost" data-act="rec">Grabar video</button><button class="btn ghost" data-act="yt">Enlace de YouTube</button></div>'+
       '<p class="src">Se guardan en este dispositivo. Compártelos por WhatsApp o correo con el botón de cada video.</p></section>'+
     '<div class="src" id="dsrc"></div>';
   el("overlay").classList.add("show");document.body.style.overflow="hidden";el("sheet").scrollTop=0;
@@ -556,11 +569,11 @@ async function enrichYears(){const btn=el("enrichBtn");if(ENRICHING){alert("Ya s
   const faltan=BOOKS.filter(b=>!((CACHE["gb:"+b.i]||{}).cover)).length;
   if(st)st.textContent=faltan?("Listas "+(BOOKS.length-faltan)+" de "+BOOKS.length+" portadas. Faltan "+faltan+"."):"¡Listo! Todas cargadas.";
   btn.textContent=faltan?"Reintentar faltantes":"Actualizar";btn.disabled=false;renderYears();renderMetrics();render()}
-function renderYears(){const years={};BOOKS.forEach(b=>{const y=(CACHE["gb:"+b.i]||{}).year;if(y&&/^\d{4}$/.test(y))years[y]=(years[y]||0)+1});
+function renderYears(){const years={};BOOKS.forEach(b=>{const y=bookYear(b);if(y)years[y]=(years[y]||0)+1});
   const keys=Object.keys(years).sort();if(!keys.length){el("mByYear").innerHTML="";return}
   const dec={};keys.forEach(y=>{const d=(Math.floor(+y/10)*10)+"s";dec[d]=(dec[d]||0)+years[y]});
   const dk=Object.keys(dec).sort();const dmax=Math.max(...Object.values(dec));
-  el("mByYear").innerHTML='<h3 style="font-size:14px;margin:4px 0 10px;color:var(--meta);text-transform:uppercase;letter-spacing:.04em;font-family:Inter">Por década ('+keys.length+' años hallados)</h3>'+dk.map(d=>bar(d,dec[d],dmax,"#2C7C91",null)).join("")}
+  el("mByYear").innerHTML='<h3 style="font-size:14px;margin:4px 0 10px;color:var(--meta);text-transform:uppercase;letter-spacing:.04em;font-family:Inter">Por década ('+keys.length+' años hallados) · toca para ver los libros</h3>'+dk.map(d=>bar(d,dec[d],dmax,"#2C7C91","dec:"+d)).join("")}
 
 /* ---- nav ---- */
 function setView(v){state.view=v;document.querySelectorAll(".view").forEach(s=>s.classList.remove("active"));el("v-"+v).classList.add("active");
@@ -575,7 +588,7 @@ qEl.addEventListener("input",()=>{state.q=qEl.value;clearEl.classList.toggle("sh
 clearEl.onclick=()=>{qEl.value="";state.q="";clearEl.classList.remove("show");qEl.focus();render()};
 el("sort").addEventListener("change",e=>{state.sort=e.target.value;render()});
 el("reset").onclick=()=>{state.q="";qEl.value="";state.cat="";state.author="";clearEl.classList.remove("show");render()};
-el("authClear").onclick=()=>{state.author="";state.ed="";render()};
+el("authClear").onclick=()=>{state.author="";state.ed="";state.dec="";render()};
 el("sAlpha").onclick=()=>{state.authSort="alpha";el("sAlpha").classList.add("on");el("sCount").classList.remove("on");renderAuthors()};
 el("sCount").onclick=()=>{state.authSort="count";el("sCount").classList.add("on");el("sAlpha").classList.remove("on");renderAuthors()};
 el("list").addEventListener("click",e=>{const c=e.target.closest(".card");if(c)openDetail(+c.dataset.i)});
@@ -589,7 +602,7 @@ el("detail").addEventListener("click",async e=>{
   const ct=e.target.closest("[data-cat]");if(ct){state.cat=ct.dataset.cat;state.author="";state.q="";qEl.value="";render();closeDetail();setView("explorar");return}
   const ob=e.target.closest("[data-openbook]");if(ob){openDetail(+ob.dataset.openbook);return}
   const ea=e.target.closest("[data-explore-author]");if(ea){state.author=ea.dataset.exploreAuthor;state.cat="";state.q="";qEl.value="";render();closeDetail();setView("explorar");return}
-  const act=e.target.closest("[data-act]");if(act){const A=act.dataset.act;if(A==="rec")el("recInput").click();else if(A==="share")shareBook(BOOKS[CURRENT]);else if(A==="retry"){delete CACHE["gb:"+CURRENT];saveCache();const b=BOOKS[CURRENT];if(el("dsyn"))el("dsyn").innerHTML='<span class="spinner"></span>Reintentando…';lookupBook(b,true).then(info=>{if(el("dsyn"))el("dsyn").innerHTML=info.synopsis?esc(info.synopsis).replace(/\n+/g,"<br><br>"):(info.neterr?'<span class="muted">Sigue sin conexión.</span>':'<span class="muted">Sin sinopsis en línea.</span>');const cv=el("dcover");if(cv&&info.cover){cv.style.background="url('"+info.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}})}else if(A==="retrybio"){const nm=firstAuthor(BOOKS[CURRENT].a);delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"retrybio")})}else if(A==="authbio"){const nm=CUR_AUTHOR;delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"authbio")})}else if(A==="yt"){setYT(BOOKS[CURRENT])}else if(A==="editcat"){editCat(BOOKS[CURRENT])}else if(A==="setcover"){PENDCOVER=BOOKS[CURRENT];el("coverShot").click()}return}
+  const act=e.target.closest("[data-act]");if(act){const A=act.dataset.act;if(A==="rec")el("recInput").click();else if(A==="share")shareBook(BOOKS[CURRENT]);else if(A==="retry"){delete CACHE["gb:"+CURRENT];saveCache();const b=BOOKS[CURRENT];if(el("dsyn"))el("dsyn").innerHTML='<span class="spinner"></span>Reintentando…';lookupBook(b,true).then(info=>{if(el("dsyn"))el("dsyn").innerHTML=info.synopsis?esc(info.synopsis).replace(/\n+/g,"<br><br>"):(info.neterr?'<span class="muted">Sigue sin conexión.</span>':'<span class="muted">Sin sinopsis en línea.</span>');const cv=el("dcover");if(cv&&info.cover){cv.style.background="url('"+info.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}})}else if(A==="retrybio"){const nm=firstAuthor(BOOKS[CURRENT].a);delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"retrybio")})}else if(A==="authbio"){const nm=CUR_AUTHOR;delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"authbio")})}else if(A==="yt"){setYT(BOOKS[CURRENT])}else if(A==="editcat"){editCat(BOOKS[CURRENT])}else if(A==="edityear"){editYear(BOOKS[CURRENT])}else if(A==="setcover"){PENDCOVER=BOOKS[CURRENT];el("coverShot").click()}return}
   const sh=e.target.closest("[data-share]");if(sh){shareVideo(+sh.dataset.share,BOOKS[CURRENT]);return}
   const dl=e.target.closest("[data-del]");if(dl){if(confirm("¿Eliminar este video?")){await idbDel(+dl.dataset.del);await refreshVidBooks();renderVideos(BOOKS[CURRENT]);render()}return}});
 el("recInput").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f||CURRENT==null)return;
@@ -665,12 +678,15 @@ async function ghCommitReplace(adds){const tk=ghToken();if(!tk||!GH.owner||!GH.r
     const body={message:'Actualizar biblioteca ('+adds.length+' añadidos)',content:btoa(unescape(encodeURIComponent(JSON.stringify({added:adds},null,2)))),branch:GH.branch};if(sha)body.sha=sha;
     const put=await fetch(api,{method:'PUT',headers:{Authorization:'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(put.ok)toast("Guardado en GitHub: ya lo verán todos.");else{const e=await put.json().catch(()=>({}));toast("GitHub: "+(e.message||put.status))}}catch(e){toast("No se pudo conectar con GitHub.")}}
-el("gear").onclick=openSettings;el("addBtn").onclick=openAdd;
+el("gear").onclick=openSettings;
+(function(){const ib=el("installBtn");if(!ib)return;ib.onclick=async()=>{if(!DEFERRED){alert("Para instalarla: en Android abre el menú del navegador y elige “Instalar aplicación”. En iPhone, toca Compartir y luego “Añadir a pantalla de inicio”.");return}
+  DEFERRED.prompt();try{await DEFERRED.userChoice}catch(e){}DEFERRED=null;ib.style.display="none"}})();el("addBtn").onclick=openAdd;
 applyAdds(loadAdds());rebuildUI();
 if(GH.owner&&GH.repo){fetch('https://raw.githubusercontent.com/'+GH.owner+'/'+GH.repo+'/'+GH.branch+'/books.json?_='+Date.now()).then(r=>r.ok?r.json():null).then(j=>{if(j){if(j.added)applyAdds(j.added);
    if(j.catOver){try{const cur=catOver();const merged=Object.assign({},j.catOver,cur);localStorage.setItem("cat_over",JSON.stringify(merged))}catch(e){}applyCatOver()}
    if(j.ytOver){try{const cur=ytOver();localStorage.setItem("yt_over",JSON.stringify(Object.assign({},j.ytOver,cur)))}catch(e){}}
    if(j.coverOver){try{const cur=coverOverStore();saveCoverOver(Object.assign({},j.coverOver,cur))}catch(e){}}
+   if(j.yearOver){try{const cur=yearOver();localStorage.setItem("year_over",JSON.stringify(Object.assign({},j.yearOver,cur)))}catch(e){}}
    rebuildUI()}}).catch(()=>{})}
 
 
@@ -734,7 +750,7 @@ function editCat(b){const cur=b.c||"";
 async function ghSyncAll(){const tk=ghToken();if(!tk||!GH.owner||!GH.repo)return;
   const api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/books.json';
   try{let sha=null;const r=await fetch(api+'?ref='+GH.branch,{headers:{Authorization:'Bearer '+tk}});if(r.ok){const j=await r.json();sha=j.sha}
-    const payload={added:loadAdds(),catOver:catOver(),ytOver:ytOver(),coverOver:coverOverStore()};
+    const payload={added:loadAdds(),catOver:catOver(),ytOver:ytOver(),coverOver:coverOverStore(),yearOver:yearOver()};
     const body={message:'Actualizar biblioteca',content:btoa(unescape(encodeURIComponent(JSON.stringify(payload,null,2)))),branch:GH.branch};if(sha)body.sha=sha;
     const put=await fetch(api,{method:'PUT',headers:{Authorization:'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(put.ok)toast("Guardado en línea.");else{const e=await put.json().catch(()=>({}));toast("GitHub: "+(e.message||put.status))}}catch(e){toast("Sin conexión con GitHub.")}}
@@ -788,7 +804,7 @@ async function ghUploadCover(b,blob){const tk=ghToken();if(!tk||!GH.owner||!GH.r
 var SHELF=null;
 function shelves(){const g={};BOOKS.forEach(b=>{const k=(b.f===""||b.f==null)?"nuevos":b.f;(g[k]=g[k]||[]).push(b)});
   Object.keys(g).forEach(k=>g[k].sort((a,b)=>(a.p||0)-(b.p||0)));return g}
-function renderMap(){const g=shelves();
+function renderMap(){detectPhotos().then(()=>{const g=el("shelfGrid");if(g)g.querySelectorAll("img").forEach(i=>i.remove());paintThumbs()});const g=shelves();
   const keys=Object.keys(g).sort((a,b)=>(a==="nuevos")?1:(b==="nuevos")?-1:(+a)-(+b));
   el("mapSub").textContent=keys.length+" estantes · toca uno para ver el orden exacto";
   el("shelfGrid").innerHTML=keys.map(k=>'<div class="shelf'+(SHELF===k?' on':'')+'" data-shelf="'+k+'">'+
@@ -809,8 +825,17 @@ coversLoadAll().then(m=>{COVERS=m;if(Object.keys(m).length)render()});
 
 /* ===== visor de fotos del estante + botones volver ===== */
 function withTimeout(p,ms){return Promise.race([p,new Promise(r=>setTimeout(()=>r({timeout:true}),ms))])}
-function photoURL(f){return "fotos/foto-"+f+".jpg"}
-function thumbURL(f){return "fotos/thumb-"+f+".jpg"}
+var PBASE=null,THUMBS=false,PDET=null;
+const PHOTO_BASES=["","fotos/","Fotos/","fotos/fotos/","img/","imagenes/"];
+function photoURL(f){return (PBASE||"")+"foto-"+f+".jpg"}
+function thumbURL(f){return (PBASE||"")+(THUMBS?"thumb-":"foto-")+f+".jpg"}
+function detectPhotos(){if(PDET)return PDET;
+  PDET=(async()=>{for(const b of PHOTO_BASES){try{if(await imgOK(b+"foto-1.jpg")){PBASE=b;break}}catch(e){}}
+    if(PBASE===null)return null;
+    try{THUMBS=await imgOK(PBASE+"thumb-1.jpg")}catch(e){THUMBS=false}
+    return PBASE})();
+  return PDET}
+async function findPhoto(f){await detectPhotos();return PBASE===null?null:PBASE+"foto-"+f+".jpg"}
 function openPhotoShelf(f,b){
   if(!f&&f!==0){toast("Este libro aún no tiene estante asignado");return}
   const cap=b?('<div class="by">'+esc(b.t)+' · <b>lugar '+b.p+'</b> · '+esc(b.id)+'</div>'):'';
@@ -820,8 +845,13 @@ function openPhotoShelf(f,b){
   el("overlay3").classList.add("show");document.body.style.overflow="hidden";el("sheet3").scrollTop=0;
   const im=el("shelfImg"),pw=el("pw");
   if(pw)pw.onclick=()=>pw.classList.toggle("zoom");
-  if(im)im.onerror=()=>{if(pw)pw.style.display="none";
-    el("photoMsg").innerHTML='<b>Falta subir esta foto.</b><br>Sube la imagen del estante al repositorio como <b>fotos/foto-'+f+'.jpg</b> y aparecerá aquí automáticamente.'}}
+  detectPhotos().then(()=>{if(im&&PBASE!==null&&!im.dataset.ok)im.src=photoURL(f)});
+  if(im)im.onload=()=>{im.dataset.ok="1"};
+  if(im)im.onerror=async()=>{const u=await findPhoto(f);
+    if(u&&im.src.indexOf(u)<0){im.src=u;return}
+    if(pw)pw.style.display="none";
+    el("photoMsg").innerHTML='<b>No encontré la foto del estante '+f+'.</b><br>Busqué en: '+PHOTO_BASES.map(b=>'<code>'+(b||'raíz/')+'foto-'+f+'.jpg</code>').join(', ')+
+      '.<br>Sube las imágenes al repositorio (carpeta <b>fotos</b>) y recarga.'}}
 function closePhoto(){el("overlay3").classList.remove("show");document.body.style.overflow=""}
 el("closeSheet3").onclick=closePhoto;el("backSheet3").onclick=closePhoto;el("backFab3").onclick=closePhoto;
 el("overlay3").addEventListener("click",e=>{if(e.target===el("overlay3"))closePhoto()});
@@ -834,13 +864,36 @@ el("detail").addEventListener("click",e=>{const p=e.target.closest("[data-photo]
 /* boton en el mapa */
 el("shelfList").addEventListener("click",e=>{if(e.target.closest("#shelfPhotoBtn")&&SHELF&&SHELF!=="nuevos")openPhotoShelf(SHELF,null)});
 /* miniaturas de estante en el mapa */
-(function(){const g=el("shelfGrid");if(!g)return;
-  const obs=new MutationObserver(()=>{g.querySelectorAll("[data-shelf]").forEach(t=>{
-    const k=t.dataset.shelf;if(k==="nuevos"||t.querySelector("img"))return;
+function paintThumbs(){const g=el("shelfGrid");if(!g||PBASE===null)return;
+  g.querySelectorAll("[data-shelf]").forEach(t=>{const k=t.dataset.shelf;
+    if(k==="nuevos"||t.querySelector("img"))return;
     const im=document.createElement("img");im.className="shelfthumb";im.loading="lazy";im.src=thumbURL(k);
-    im.onerror=()=>{if(im.dataset.f){im.remove()}else{im.dataset.f="1";im.src=photoURL(k)}};
-    t.insertBefore(im,t.firstChild)})});
-  obs.observe(g,{childList:true})})();
+    im.onerror=()=>im.remove();t.insertBefore(im,t.firstChild)});}
+(function(){const g=el("shelfGrid");if(!g)return;
+  new MutationObserver(()=>{if(PBASE!==null)paintThumbs()}).observe(g,{childList:true});
+  detectPhotos()})();
+
+
+/* ===== año propio, filtro por década, PWA ===== */
+function yearOver(){try{return JSON.parse(localStorage.getItem("year_over")||"{}")}catch(e){return{}}}
+function bookYear(b){const o=yearOver()[b.id];if(o)return +o;
+  const y=(CACHE["gb:"+b.i]||{}).year;return (y&&/^\d{4}$/.test(y))?+y:0}
+function editYear(b){const cur=bookYear(b)||"";
+  const v=prompt("Año de publicación de “"+b.t+"”\n\n(Google Books a veces trae un año equivocado; aquí puedes corregirlo)",cur);
+  if(v==null)return;const n=(""+v).trim();
+  const o=yearOver();
+  if(!n){delete o[b.id]}else{if(!/^\d{4}$/.test(n)){alert("Escribe un año de 4 cifras.");return}o[b.id]=n}
+  try{localStorage.setItem("year_over",JSON.stringify(o))}catch(e){}
+  render();if(state.view==="metricas"){renderMetrics();renderYears()}
+  const ov=el("overlay");if(ov&&ov.classList.contains("show"))openDetail(b.i);
+  toast("Año actualizado.");ghSyncAll()}
+/* filtro por década desde métricas */
+el("mByYear").addEventListener("click",e=>{const r=e.target.closest("[data-act]");
+  if(r&&r.dataset.act.startsWith("dec:")){state.dec=r.dataset.act.slice(4);state.cat="";state.author="";state.ed="";render();setView("explorar")}});
+/* PWA: service worker + botón instalar */
+if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})})}
+var DEFERRED=null;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();DEFERRED=e;const b=el("installBtn");if(b)b.style.display="block"});
 
 </script>
 </body>
