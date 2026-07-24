@@ -360,13 +360,20 @@ body.ro #newShelfBtn,body.ro #shelfNewPhoto,body.ro [data-act="ai"],body.ro [dat
       <p class="src">Busca en Open Library, Apple Books, Google y Amazon. Puede tardar; déjalo corriendo con la pantalla encendida. Vuelve a tocarlo para detenerlo.</p>
       <p class="src" id="enrStat"></p>
       <div class="prog" id="prog"><div class="pfill" id="pfill"></div></div>
+      <select id="yrMode" class="catsel" style="color:var(--ink);background:#fff;border-color:var(--line);margin:14px 0 0" aria-label="Rango">
+        <option value="dec">Por décadas</option>
+        <option value="5">Últimos 5 años</option>
+        <option value="10">Últimos 10 años</option>
+        <option value="20">Últimos 20 años</option>
+        <option value="year">Por año (todos)</option>
+      </select>
       <div id="mByYear" style="margin-top:14px"></div>
     </div>
   </section>
   <footer>
     <img id="footSeal" class="footseal" src="sello.png" alt="Sello de la Biblioteca Marca y Mente">
     <div>Marca y Mente · catálogo generado el 24/07/2026 · 315 libros</div>
-    <div id="verLine" style="margin-top:4px;font-size:11px;color:#B4AEA1">versión 2026.07.24-09:48 (hora Colombia)</div>
+    <div id="verLine" style="margin-top:4px;font-size:11px;color:#B4AEA1">versión 2026.07.24-10:22 (hora Colombia)</div>
   </footer>
 </main>
 
@@ -411,7 +418,7 @@ function migrateCache(){let n=0;try{
 (function(){const V="4";try{if(localStorage.getItem("bib_cache_ver")!==V){
   let n=0;Object.keys(CACHE).forEach(k=>{if(k.indexOf("wk:")===0){delete CACHE[k];n++}});
   localStorage.setItem("bib_cache_ver",V);saveCache()}}catch(e){}})();
-let state={q:"",cat:"",author:"",ed:"",dec:"",lang:"",sort:"t",view:"explorar",authSort:"alpha",authQ:""};
+let state={q:"",cat:"",author:"",ed:"",dec:"",lang:"",year:"",sort:"t",view:"explorar",authSort:"alpha",authQ:""};
 var thumbObs=null;var COVERS={};var COVEROVER={};
 let CURRENT=null, VIDBOOKS=new Set();
 
@@ -452,6 +459,7 @@ function filtered(){const nq=norm(state.q.trim());
   let out=BOOKS.filter(b=>{if(state.author&&!splitAuthors(b.a).includes(state.author))return false;
     if(state.ed&&bookEd(b)!==state.ed)return false;
     if(state.lang&&bookLang(b)!==state.lang)return false;
+    if(state.year&&(""+bookYear(b))!==state.year)return false;
     if(state.dec){const y=bookYear(b);if(!y||(Math.floor(y/10)*10)+"s"!==state.dec)return false}
     if(state.cat&&b.c!==state.cat)return false;if(nq&&!b._s.includes(nq))return false;return true});
   const k=state.sort;const yr=x=>bookYear(x)||-1;
@@ -463,8 +471,8 @@ function filtered(){const nq=norm(state.q.trim());
       if(!x&&y)return 1;if(x&&!y)return -1;return x.localeCompare(y,"es")||cmpA(a.t,b.t)}
     return cmpA(a.t,b.t)});return out}
 function render(){const rows=filtered(),q=state.q.trim();
-  const anyF=!!(state.author||state.ed||state.dec||state.lang);el("authbar").classList.toggle("show",anyF);
-  if(anyF)el("filtWho").innerHTML=(state.author?'Autor: <b>'+esc(state.author)+'</b>':'')+(state.author&&state.ed?' · ':'')+(state.ed?'Editorial: <b>'+esc(state.ed)+'</b>':'')+((state.author||state.ed)&&state.dec?' · ':'')+(state.dec?'Década: <b>'+esc(state.dec)+'</b>':'')+(state.lang?(state.dec?' · ':'')+'Idioma: <b>'+(state.lang==="es"?"Español":"Inglés")+'</b>':'');
+  const anyF=!!(state.author||state.ed||state.dec||state.lang||state.year);el("authbar").classList.toggle("show",anyF);
+  if(anyF)el("filtWho").innerHTML=(state.author?'Autor: <b>'+esc(state.author)+'</b>':'')+(state.author&&state.ed?' · ':'')+(state.ed?'Editorial: <b>'+esc(state.ed)+'</b>':'')+((state.author||state.ed)&&state.dec?' · ':'')+(state.dec?'Década: <b>'+esc(state.dec)+'</b>':'')+(state.lang?(state.dec?' · ':'')+'Idioma: <b>'+(state.lang==="es"?"Español":"Inglés")+'</b>':'')+(state.year?' · Año: <b>'+esc(state.year)+'</b>':'');
   el("totalNum").textContent=rows.length;
   el("totalLbl").textContent=state.cat?"en categoría":(state.author?"de este autor":(state.ed?"de esta editorial":(state.q?"encontrados":"libros")));
   if(catSel&&catSel.value!==state.cat)catSel.value=state.cat;
@@ -491,15 +499,17 @@ function renderAuthors(){let list=state.authSort==="alpha"?AUTH_ALPHA:AUTH_COUNT
     return '<div class="arow'+(n>1?' multi':'')+'" data-author="'+esc(a)+'"><span class="nm">'+esc(a)+'</span>'+
       '<span class="ct">'+(n>1?'<span class="badge">'+n+'</span>':n+' libro')+'</span></div>'}).join("")||'<p style="color:#9A9384;font-size:14px;padding:10px 2px">No hay autores que coincidan.</p>'}
 
-function bar(label,val,max,col,act){const pct=Math.max(3,Math.round(val/max*100));
-  return '<div class="bar"'+(act?' data-act="'+act+'"':'')+'><div class="lab"><span>'+esc(label)+'</span><span class="v">'+val+'</span></div>'+
+function bar(label,val,max,col,act,total){const pct=Math.max(3,Math.round(val/max*100));
+  const share=total?(" · "+(val/total*100).toFixed(val/total<0.1?1:0)+"%"):"";
+  return '<div class="bar"'+(act?' data-act="'+act+'"':'')+'><div class="lab"><span>'+esc(label)+'</span><span class="v">'+val+share+'</span></div>'+
     '<div class="track"><div class="fill" style="width:'+pct+'%;background:'+col+'"></div></div></div>'}
 function renderMetrics(){el("mTotal").textContent=TOTAL;el("mAuthors").textContent=AUTH_ALPHA.length;el("mCats").textContent=CATS.length;
-  const cmax=Math.max(...Object.values(CATCOUNT));el("mByCat").innerHTML=CATS.map(c=>bar(c,CATCOUNT[c],cmax,color(c),"cat:"+c)).join("");
+  const cmax=Math.max(...Object.values(CATCOUNT));
+  el("mByCat").innerHTML=CATS.slice().sort((a,b)=>(CATCOUNT[b]||0)-(CATCOUNT[a]||0)).filter(c=>CATCOUNT[c]).map(c=>bar(c,CATCOUNT[c],cmax,color(c),"cat:"+c,TOTAL)).join("");
   const topA=AUTH_COUNT.filter(a=>AUTH[a].length>1).slice(0,15);const amax=topA.length?AUTH[topA[0]].length:1;
-  el("mByAuthor").innerHTML=topA.map(a=>bar(a,AUTH[a].length,amax,"#B2842B","auth:"+a)).join("")||'<p style="color:#9A9384;font-size:13px">—</p>';
+  el("mByAuthor").innerHTML=topA.map(a=>bar(a,AUTH[a].length,amax,"#B2842B","auth:"+a,TOTAL)).join("")||'<p style="color:#9A9384;font-size:13px">—</p>';
   const ED={};BOOKS.forEach(b=>{const e2=bookEd(b);if(e2)ED[e2]=(ED[e2]||0)+1});const eds=Object.keys(ED).sort((a,b)=>ED[b]-ED[a]).slice(0,12);const emax=eds.length?ED[eds[0]]:1;
-  el("mByEd").innerHTML=eds.map(e=>bar(e,ED[e],emax,"#556074","ed:"+e)).join("");
+  el("mByEd").innerHTML=eds.map(e=>bar(e,ED[e],emax,"#556074","ed:"+e,TOTAL)).join("");
   renderLangs();renderExtraMetrics()}
 function renderExtraMetrics(){const box=el("mExtra");if(!box)return;
   let pages=[],years=[],langs={};
@@ -515,7 +525,7 @@ function renderExtraMetrics(){const box=el("mExtra");if(!box)return;
   if(oldB)h+='<div class="bar"><div class="lab"><span>Libro más antiguo</span><span class="v">'+oldB+'</span></div></div>'+
             '<div class="bar"><div class="lab"><span>Libro más reciente</span><span class="v">'+newB+'</span></div></div>';
   if(lk.length)h+='<h3 style="font-size:14px;margin:12px 0 10px;color:var(--meta);text-transform:uppercase;letter-spacing:.04em;font-family:Inter">Por idioma</h3>'+
-    lk.slice(0,6).map(l=>bar(LN[l]||l,langs[l],lmax,"#7A5AA6",null)).join("");
+    lk.slice(0,6).map(l=>bar(LN[l]||l,langs[l],lmax,"#7A5AA6",null,BOOKS.length)).join("");
   box.innerHTML=h}
 
 /* ---- online lookups (robustos) ---- */
@@ -743,10 +753,24 @@ async function enrichYears(){const btn=el("enrichBtn");if(ENRICHING){alert("Ya s
   btn.textContent=faltan?"Reintentar faltantes":"Actualizar";btn.disabled=false;renderYears();renderMetrics();render();
   if(syncOn())publishMeta()}
 function renderYears(){const years={};BOOKS.forEach(b=>{const y=bookYear(b);if(y)years[y]=(years[y]||0)+1});
-  const keys=Object.keys(years).sort();if(!keys.length){el("mByYear").innerHTML="";return}
-  const dec={};keys.forEach(y=>{const d=(Math.floor(+y/10)*10)+"s";dec[d]=(dec[d]||0)+years[y]});
-  const dk=Object.keys(dec).sort();const dmax=Math.max(...Object.values(dec));
-  el("mByYear").innerHTML='<h3 style="font-size:14px;margin:4px 0 10px;color:var(--meta);text-transform:uppercase;letter-spacing:.04em;font-family:Inter">Por década ('+keys.length+' años hallados) · toca para ver los libros</h3>'+dk.map(d=>bar(d,dec[d],dmax,"#2C7C91","dec:"+d)).join("")}
+  const keys=Object.keys(years).sort();const box=el("mByYear");if(!box)return;
+  if(!keys.length){box.innerHTML='<p class="src">Aún no hay años. Toca “Completar año, editorial y biografías”.</p>';return}
+  const mode=(el("yrMode")||{}).value||"dec";
+  const conYear=keys.reduce((n,y)=>n+years[y],0);
+  let rows=[],titulo="";
+  if(mode==="dec"){const dec={};keys.forEach(y=>{const d=(Math.floor(+y/10)*10)+"s";dec[d]=(dec[d]||0)+years[y]});
+    const dk=Object.keys(dec).sort();const dmax=Math.max.apply(null,Object.values(dec));
+    rows=dk.map(d=>bar(d,dec[d],dmax,"#2C7C91","dec:"+d,conYear));titulo="Por década"}
+  else if(mode==="year"){const ymax=Math.max.apply(null,Object.values(years));
+    rows=keys.slice().reverse().slice(0,40).map(y=>bar(y,years[y],ymax,"#2C7C91","yr:"+y,conYear));titulo="Por año"}
+  else{const n=+mode;const now=new Date().getFullYear();
+    const sel=keys.filter(y=>+y>now-n);const ymax=sel.length?Math.max.apply(null,sel.map(y=>years[y])):1;
+    const suma=sel.reduce((a,y)=>a+years[y],0);
+    rows=sel.slice().reverse().map(y=>bar(y,years[y],ymax,"#2C7C91","yr:"+y,conYear));
+    titulo="Últimos "+n+" años · "+suma+" libros ("+Math.round(suma/conYear*100)+"% de los que tienen año)"}
+  box.innerHTML='<h3 style="font-size:14px;margin:4px 0 10px;color:var(--meta);text-transform:uppercase;letter-spacing:.04em;font-family:Inter">'+
+    esc(titulo)+' · '+conYear+' de '+BOOKS.length+' libros con año ('+Math.round(conYear/BOOKS.length*100)+'%)</h3>'+
+    (rows.join("")||'<p class="src">Sin datos en ese rango.</p>')}
 
 /* ---- nav ---- */
 function setView(v){state.view=v;document.querySelectorAll(".view").forEach(s=>s.classList.remove("active"));el("v-"+v).classList.add("active");
@@ -761,7 +785,7 @@ qEl.addEventListener("input",()=>{state.q=qEl.value;clearEl.classList.toggle("sh
 clearEl.onclick=()=>{qEl.value="";state.q="";clearEl.classList.remove("show");qEl.focus();render()};
 el("sort").addEventListener("change",e=>{state.sort=e.target.value;render()});
 el("reset").onclick=()=>{state.q="";qEl.value="";state.cat="";state.author="";clearEl.classList.remove("show");render()};
-el("authClear").onclick=()=>{state.author="";state.ed="";state.dec="";state.lang="";render()};
+el("authClear").onclick=()=>{state.author="";state.ed="";state.dec="";state.lang="";state.year="";render()};
 el("sAlpha").onclick=()=>{state.authSort="alpha";el("sAlpha").classList.add("on");el("sCount").classList.remove("on");renderAuthors()};
 el("sCount").onclick=()=>{state.authSort="count";el("sCount").classList.add("on");el("sAlpha").classList.remove("on");renderAuthors()};
 el("list").addEventListener("click",e=>{const c=e.target.closest(".card");if(c)openDetail(+c.dataset.i)});
@@ -852,7 +876,7 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
       '<p class="src"><a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener"><b>Obtener una clave →</b></a> · Modelo: <input id="s_aimodel" class="in" style="display:inline-block;width:auto;padding:4px 8px;font-size:13px" value="'+esc(aiModel())+'"></p></div>'+
     '<div class="dbtns"><button class="btn" id="s_aisave">Guardar clave</button><button class="btn ghost" id="s_aitest">Probar IA</button></div><p class="src" id="aiMsg"></p></section>'+
   '<section><h3>Aplicación</h3>'+
-    '<p class="src">Versión instalada: <b>2026.07.24-09:48</b></p>'+
+    '<p class="src">Versión instalada: <b>2026.07.24-10:22</b></p>'+
     '<p class="src" id="syncState"></p><div class="dbtns"><button class="btn" id="s_pub">Publicar todo ahora</button><button class="btn ghost" id="s_meta">Publicar sinopsis y portadas</button><button class="btn ghost" id="s_share">Compartir la biblioteca</button><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button><button class="btn ghost" id="s_reset">Borrar datos descargados</button><button class="btn ghost" id="s_restore">Libros eliminados</button><button class="btn ghost" id="s_ro"></button></div><p class="src">El modo solo lectura oculta los botones de editar: útil si prestas el teléfono o lo muestras en clase.</p><div class="src" id="diagOut"></div>'+
     '<p class="src">La app se actualiza sola al abrirla con conexión. Si algo no se ve nuevo, toca “Buscar actualizaciones”.</p></section>';
   openModal2();
@@ -1124,7 +1148,10 @@ function doYear(b,v){const n=(""+v).trim();
   const ov=el("overlay");if(ov&&ov.classList.contains("show"))openDetail(b.i);
   toast("Año actualizado.");ghSyncAll()}
 /* filtro por década desde métricas */
+(function(){const y=el("yrMode");if(y)y.addEventListener("change",renderYears)})();
 el("mByYear").addEventListener("click",e=>{const r=e.target.closest("[data-act]");
+  if(r&&r.dataset.act.indexOf("yr:")===0){const Y=r.dataset.act.slice(3);
+    state.year=Y;state.dec="";state.cat="";state.author="";state.ed="";render();setView("explorar");return}
   if(r&&r.dataset.act.startsWith("dec:")){state.dec=r.dataset.act.slice(4);state.cat="";state.author="";state.ed="";render();setView("explorar")}});
 /* PWA: service worker + botón instalar */
 /* actualizaciones automáticas */
@@ -1190,10 +1217,11 @@ function formModal(title,fields,onSave,note){
   el("fmSave").onclick=()=>{const vals=fields.map((f,i)=>el("fm"+i).value);restore();closeModal2();onSave(vals)}}
 function editMeta(b){formModal("Corregir libro",
   [{label:"Título",val:b.t},{label:"Autor (separa varios con comas)",val:b.a},
-   {label:"Editorial",val:bookEd(b)},
+   {label:"Editorial",val:bookEd(b)},{label:"Idioma (es o en)",val:bookLang(b)},
    {label:"Estante (número de foto)",val:b.f,type:"num"},{label:"Lugar en el estante",val:b.p,type:"num"}],
-  vals=>{const[t,a,ed,f,p]=vals;const o=metaOver();const m=o[b.id]||{};
+  vals=>{const[t,a,ed,lg,f,p]=vals;const o=metaOver();const m=o[b.id]||{};
     if(t.trim())m.t=t.trim();m.a=a.trim();m.e=(ed||"").trim();if(m.e)b.e=m.e;
+    const L=(lg||"").trim().toLowerCase();if(L==="es"||L==="en")m.lang=L;
     if((f+"").trim())m.f=parseInt(f,10)||"";if((p+"").trim())m.p=parseInt(p,10)||"";
     o[b.id]=m;saveMeta(o);
     b.t=m.t||b.t;b.a=m.a;if(m.f)b.f=m.f;if(m.p)b.p=m.p;if((b.n||"").indexOf("Confirmar")===0)b.n="";
@@ -2022,7 +2050,7 @@ function showComp(k){const m=compStats();const arr=m[k]||[];
 
 
 /* ===== control de versión visible y fiable ===== */
-const APP_VER="2026.07.24-09:48";
+const APP_VER="2026.07.24-10:22";
 async function checkVersion(silent){
   try{const r=await fetch("version.json?_="+Date.now(),{cache:"no-store"});
     if(!r.ok)return null;const j=await r.json();
@@ -2038,13 +2066,24 @@ async function checkVersion(silent){
 
 
 /* ===== idioma de cada libro ===== */
+const EN_TIT=new Set("the of and your you a an in on for with how why what who to is are it its his her their from all no not new small big data brain brains business book books boom sonic engine persuasion package design algebra happiness expansion sale marketing metrics hooked blink focus optimal let them think pink thousand power habits deep work influence pre suasion buyology brainfluence lit crea".split(" "));
+const ES_TIT=new Set("el la los las de del y en para con por un una que como tu su al es son mas más sin sobre entre cuando desde hacia ante tras cada otro otra nuestro nuestra".split(" "));
+function titleEnglish(t){const n=norm(t);if(/[ñ]/.test(n))return false;
+  if(/[áéíóú¿¡]/.test(t))return false;
+  const ws=n.replace(/[^a-z0-9 ]/g," ").split(/\s+/).filter(Boolean);
+  if(!ws.length)return false;
+  let en=0,es=0;ws.forEach(w=>{if(EN_TIT.has(w))en++;if(ES_TIT.has(w))es++});
+  if(es>0)return false;
+  return en>=1&&en/ws.length>=0.25}
 function bookLang(b){const c=CACHE["gb:"+b.id]||{};
   const m=metaOver()[b.id]||{};
   if(m.lang)return m.lang;
-  if(c.lang&&(c.lang==="es"||c.lang==="en"))return c.lang;
+  if(c.lang){const L=(""+c.lang).toLowerCase();
+    if(L.indexOf("en")===0||L==="eng")return "en";
+    if(L.indexOf("es")===0||L==="spa")return "es"}
   const syn=(m.syn||c.synopsis||"");
-  if(isEnglish(b.t))return "en";
-  if(syn&&isEnglish(syn)&&isEnglish(b.t))return "en";
+  if(titleEnglish(b.t))return "en";
+  if(syn&&isEnglish(syn))return "en";
   return "es"}
 function renderLangs(){const box=el("mByLang");if(!box)return;
   const g={};BOOKS.forEach(b=>{const l=bookLang(b);g[l]=(g[l]||0)+1});
@@ -2235,12 +2274,13 @@ async function extraFor(b){const key="gb:"+b.id;const c=CACHE[key]||{};
   const a=firstAuthor(b.a);
   for(const t of titleVariantsCov(b).slice(0,2)){
     if(!need())break;
-    try{const u='https://openlibrary.org/search.json?limit=3&fields=first_publish_year,publisher,isbn,title,author_name&title='+encodeURIComponent(t)+(a?'&author='+encodeURIComponent(a):'');
+    try{const u='https://openlibrary.org/search.json?limit=3&fields=first_publish_year,publisher,isbn,title,author_name,language&title='+encodeURIComponent(t)+(a?'&author='+encodeURIComponent(a):'');
       const j=await fetchJSON(u,2);const docs=(j&&j.docs)||[];
       for(const d of docs){
         if(!c.year&&d.first_publish_year){c.year=""+d.first_publish_year;got=true}
         if(!c.publisher&&d.publisher&&d.publisher.length){c.publisher=d.publisher[0];got=true}
         if(!c.isbn&&d.isbn&&d.isbn[0]){c.isbn=d.isbn[0];got=true}
+        if(!c.lang&&d.language&&d.language.length){const L=d.language[0];c.lang=(L==="eng"?"en":(L==="spa"?"es":L));got=true}
         if(c.year&&c.publisher)break}
     }catch(e){}
     await sleep(120)}
