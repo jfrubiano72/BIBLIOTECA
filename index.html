@@ -313,6 +313,7 @@ textarea.in{font-family:inherit;line-height:1.45;resize:vertical}
 <input id="coverPhoto" type="file" accept="image/*" capture="environment" hidden>
 <input id="coverShot" type="file" accept="image/*" capture="environment" hidden>
 <input id="shelfShot" type="file" accept="image/*" capture="environment" hidden>
+<input id="coverPick" type="file" accept="image/*" hidden>
 <datalist id="catlist"></datalist>
 <div class="overlay" id="overlay3"><div class="sheet" id="sheet3"><div class="sheet-bar"><button id="backSheet3" class="backbtn">‹ Volver</button><button id="closeSheet3" aria-label="Cerrar">&times;</button></div><div class="detail" id="photoBox"></div></div><button class="backfab" id="backFab3">‹ Volver</button></div>
 <div class="overlay" id="overlay2"><div class="sheet" id="sheet2"><div class="sheet-bar"><button id="backSheet2" class="backbtn" aria-label="Volver">‹ Volver</button><button id="closeSheet2" aria-label="Cerrar">&times;</button></div><div class="detail" id="modal2"></div></div><button class="backfab" id="backFab2">‹ Volver</button></div>
@@ -557,7 +558,7 @@ function openDetail(i){CURRENT=i;CUR_AUTHOR=null;const b=BOOKS[i];const col=colo
   const byline=b.a?'Por <a data-author="'+esc(firstAuthor(b.a))+'">'+esc(b.a)+'</a>':'<span class="muted">Autor por confirmar</span>';
   el("detail").innerHTML='<div class="top"><div class="cover" id="dcover">Buscando<br>portada…</div><div style="flex:1">'+
       '<h2>'+esc(b.t)+'</h2><div class="by">'+byline+'</div><div class="facts">'+facts+'</div>'+
-      '<div class="dbtns"><button class="btn" data-act="share">Compartir libro</button><button class="btn ghost" data-act="setcover">📷 Foto de portada</button><button class="btn ghost" data-act="coverurl">🔗 Portada por enlace</button><button class="btn ghost" data-act="editmeta">✎ Corregir título / autor</button></div></div></div>'+
+      '<div class="dbtns"><button class="btn" data-act="share">Compartir libro</button><button class="btn ghost" data-act="setcover">\uD83D\uDDBC Cambiar portada</button><button class="btn ghost" data-act="editmeta">✎ Corregir título / autor</button></div></div></div>'+
     '<section><h3>Sinopsis</h3><div class="body" id="dsyn"><span class="spinner"></span>Buscando en Internet…</div>'+
       '<button class="btn ghost" data-act="editsyn" style="margin-top:10px">✎ Escribir / corregir sinopsis</button></section>'+
     (b.a?'<section><h3>Sobre el autor</h3><div class="body" id="dbio"><span class="spinner"></span>Buscando biografía…</div></section>':'')+
@@ -680,7 +681,7 @@ el("detail").addEventListener("click",async e=>{
   const ct=e.target.closest("[data-cat]");if(ct){state.cat=ct.dataset.cat;state.author="";state.q="";qEl.value="";render();closeDetail();setView("explorar");return}
   const ob=e.target.closest("[data-openbook]");if(ob){openDetail(+ob.dataset.openbook);return}
   const ea=e.target.closest("[data-explore-author]");if(ea){state.author=ea.dataset.exploreAuthor;state.cat="";state.q="";qEl.value="";render();closeDetail();setView("explorar");return}
-  const act=e.target.closest("[data-act]");if(act){const A=act.dataset.act;if(A==="rec")el("recInput").click();else if(A==="share")shareBook(BOOKS[CURRENT]);else if(A==="retry"){delete CACHE["gb:"+CURRENT];saveCache();const b=BOOKS[CURRENT];if(el("dsyn"))el("dsyn").innerHTML='<span class="spinner"></span>Reintentando…';lookupBook(b,true).then(info=>{if(el("dsyn"))el("dsyn").innerHTML=info.synopsis?esc(info.synopsis).replace(/\n+/g,"<br><br>"):(info.neterr?'<span class="muted">Sigue sin conexión.</span>':'<span class="muted">Sin sinopsis en línea.</span>');const cv=el("dcover");if(cv&&info.cover){cv.style.background="url('"+info.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}})}else if(A==="retrybio"){const nm=firstAuthor(BOOKS[CURRENT].a);delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"retrybio")})}else if(A==="authbio"){const nm=CUR_AUTHOR;delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"authbio")})}else if(A==="yt"){setYT(BOOKS[CURRENT])}else if(A==="editcat"){editCat(BOOKS[CURRENT])}else if(A==="edityear"){editYear(BOOKS[CURRENT])}else if(A==="editmeta"){editMeta(BOOKS[CURRENT])}else if(A==="coverurl"){coverByURL(BOOKS[CURRENT])}else if(A==="editsyn"){editSyn(BOOKS[CURRENT])}else if(A==="setcover"){PENDCOVER=BOOKS[CURRENT];el("coverShot").click()}return}
+  const act=e.target.closest("[data-act]");if(act){const A=act.dataset.act;if(A==="rec")el("recInput").click();else if(A==="share")shareBook(BOOKS[CURRENT]);else if(A==="retry"){delete CACHE["gb:"+CURRENT];saveCache();const b=BOOKS[CURRENT];if(el("dsyn"))el("dsyn").innerHTML='<span class="spinner"></span>Reintentando…';lookupBook(b,true).then(info=>{if(el("dsyn"))el("dsyn").innerHTML=info.synopsis?esc(info.synopsis).replace(/\n+/g,"<br><br>"):(info.neterr?'<span class="muted">Sigue sin conexión.</span>':'<span class="muted">Sin sinopsis en línea.</span>');const cv=el("dcover");if(cv&&info.cover){cv.style.background="url('"+info.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}})}else if(A==="retrybio"){const nm=firstAuthor(BOOKS[CURRENT].a);delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"retrybio")})}else if(A==="authbio"){const nm=CUR_AUTHOR;delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"authbio")})}else if(A==="yt"){setYT(BOOKS[CURRENT])}else if(A==="editcat"){editCat(BOOKS[CURRENT])}else if(A==="edityear"){editYear(BOOKS[CURRENT])}else if(A==="editmeta"){editMeta(BOOKS[CURRENT])}else if(A==="coverurl"){coverByURL(BOOKS[CURRENT])}else if(A==="editsyn"){editSyn(BOOKS[CURRENT])}else if(A==="setcover"){coverMenu(BOOKS[CURRENT])}return}
   const sh=e.target.closest("[data-share]");if(sh){shareVideo(+sh.dataset.share,BOOKS[CURRENT]);return}
   const dl=e.target.closest("[data-del]");if(dl){if(confirm("¿Eliminar este video?")){await idbDel(+dl.dataset.del);await refreshVidBooks();renderVideos(BOOKS[CURRENT]);render()}return}});
 el("recInput").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f||CURRENT==null)return;
@@ -750,7 +751,7 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
   '<div class="fld"><label>Token (fine-grained, solo este repo, permiso Contents: Read and write)</label><input id="s_token" class="in" type="password" placeholder="'+(ghToken()?"•••• guardado ••••":"github_pat_…")+'"></div>'+
   '<div class="dbtns"><button class="btn" id="s_save">Guardar</button><button class="btn ghost" id="s_test">Probar conexión</button></div><p class="src" id="s_msg"></p>'+
   '<section><h3>Aplicación</h3>'+
-    '<p class="src">Versión instalada: <b>2026.07.24-0443</b></p>'+
+    '<p class="src">Versión instalada: <b>2026.07.24-0500</b></p>'+
     '<div class="dbtns"><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button></div><div class="src" id="diagOut"></div>'+
     '<p class="src">La app se actualiza sola al abrirla con conexión. Si algo no se ve nuevo, toca “Buscar actualizaciones”.</p></section>';
   openModal2();
@@ -874,15 +875,8 @@ function shrinkImage(file,maxW){return new Promise((res,rej)=>{const rd=new File
     cv.toBlob(b=>b?res(b):rej(new Error("blob")),"image/jpeg",0.72)};
     im.onerror=rej;im.src=rd.result};
   rd.onerror=rej;rd.readAsDataURL(file)})}
-el("coverShot").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";
-  if(!f||!PENDCOVER)return;const b=PENDCOVER;
-  try{toast("Procesando la foto…");const blob=await shrinkImage(f,520);
-    await coverPut(b.id,blob);
-    try{if(COVERS[b.id])URL.revokeObjectURL(COVERS[b.id])}catch(err){}
-    COVERS[b.id]=URL.createObjectURL(blob);
-    const cv=el("dcover");if(cv){cv.style.background="url('"+COVERS[b.id]+"') center/cover no-repeat #EDE9E0";cv.textContent=""}
-    render();toast("Portada guardada.");ghUploadCover(b,blob)}
-  catch(err){toast("No se pudo procesar la foto.")}};
+el("coverShot").onchange=e=>{const f=e.target.files&&e.target.files[0];e.target.value="";
+  if(f&&PENDCOVER)saveCoverBlob(PENDCOVER,f)};
 async function blobToB64(blob){return new Promise((res,rej)=>{const r=new FileReader();
   r.onload=()=>res((""+r.result).split(",")[1]);r.onerror=rej;r.readAsDataURL(blob)})}
 async function ghUploadCover(b,blob){const tk=ghToken();if(!tk||!GH.owner||!GH.repo)return;
@@ -1384,6 +1378,82 @@ function drawWorld(st,keys){const cv=el("worldCv");if(!cv)return;
       openAuthor(name);toast("País actualizado.");ghSyncAll()},
       "Sugerencias: "+Object.keys(COORDS).slice(0,10).join(" · "));
     d.appendChild(b)}})();
+
+
+/* ===== menú de portada: cámara, galería, pegar imagen o enlace ===== */
+async function saveCoverBlob(b,blob){
+  try{const small=await shrinkImage(blob,520);
+    await coverPut(b.id,small);
+    try{if(COVERS[b.id])URL.revokeObjectURL(COVERS[b.id])}catch(e){}
+    COVERS[b.id]=URL.createObjectURL(small);
+    const o=coverOverStore();delete o[b.id];saveCoverOver(o);
+    closeModal2();render();openDetail(b.i);toast("Portada actualizada.");
+    ghUploadCover(b,small)}
+  catch(e){toast("No se pudo procesar la imagen.")}}
+async function coverFromURL(b,u){u=(u||"").trim();if(!u)return;
+  toast("Comprobando la imagen…");
+  if(!(await imgOK(u))){alert("No pude cargar esa imagen. Mantén pulsada la foto en la web y elige “Copiar imagen” (no el enlace de la página).");return}
+  const o=coverOverStore();o[b.id]=u;saveCoverOver(o);
+  closeModal2();render();openDetail(b.i);toast("Portada actualizada.");ghSyncAll()}
+async function pasteCover(b){
+  try{
+    if(navigator.clipboard&&navigator.clipboard.read){
+      const items=await navigator.clipboard.read();
+      for(const it of items){const t=(it.types||[]).find(x=>x.indexOf("image/")===0);
+        if(t){const blob=await it.getType(t);return saveCoverBlob(b,blob)}}
+    }
+    if(navigator.clipboard&&navigator.clipboard.readText){
+      const txt=(await navigator.clipboard.readText()||"").trim();
+      if(/^https?:\/\//i.test(txt))return coverFromURL(b,txt);
+    }
+    alert("No encontré una imagen copiada.\n\nEn el celular: mantén pulsada la portada en Buscalibre y elige “Copiar imagen”. Luego vuelve y toca “Pegar imagen”.");
+  }catch(e){
+    alert("Tu navegador pidió permiso para leer el portapapeles.\n\nSi lo rechazaste, usa “Pegar enlace”: mantén pulsada la foto y elige “Copiar dirección de la imagen”.");}}
+var PASTETARGET=null;
+document.addEventListener("paste",e=>{if(!PASTETARGET)return;
+  const items=(e.clipboardData&&e.clipboardData.items)||[];
+  for(const it of items){if((it.type||"").indexOf("image/")===0){const f=it.getAsFile();if(f){e.preventDefault();saveCoverBlob(PASTETARGET,f);return}}}
+  const txt=e.clipboardData&&e.clipboardData.getData("text");
+  if(txt&&/^https?:\/\//i.test(txt.trim())){e.preventDefault();coverFromURL(PASTETARGET,txt.trim())}});
+function coverMenu(b){
+  const q=encodeURIComponent(b.t+" "+(b.a||""));
+  const cur=COVERS[b.id]||COVEROVER[b.id]||(CACHE["gb:"+b.i]||{}).cover||"";
+  el("modal2").innerHTML='<h2>Portada de “'+esc(b.t)+'”</h2>'+
+    (cur?'<img src="'+cur+'" style="height:150px;border-radius:10px;display:block;margin:6px 0 12px;box-shadow:0 3px 12px rgba(23,34,59,.18)">':'')+
+    '<p class="src">Busca la portada y cópiala, o usa una foto tuya.</p>'+
+    '<div class="buy" style="margin-bottom:14px">'+
+      '<a class="buybtn" target="_blank" rel="noopener" href="https://www.buscalibre.com.co/libros/search?q='+q+'">Buscalibre</a>'+
+      '<a class="buybtn" target="_blank" rel="noopener" href="https://www.google.com/search?tbm=isch&q='+q+'%20portada%20libro">Google Imágenes</a>'+
+      '<a class="buybtn" target="_blank" rel="noopener" href="https://www.amazon.com/s?k='+q+'">Amazon</a>'+
+    '</div>'+
+    '<div class="fld"><label>Opciones</label>'+
+    '<div class="dbtns">'+
+      '<button class="btn" id="cvPaste">\uD83D\uDCCB Pegar imagen copiada</button>'+
+      '<button class="btn ghost" id="cvGal">\uD83D\uDDBC Elegir de la galería</button>'+
+      '<button class="btn ghost" id="cvCam">\uD83D\uDCF7 Tomar foto</button>'+
+    '</div></div>'+
+    '<div class="fld"><label>O pega la dirección de la imagen</label>'+
+      '<input id="cvUrl" class="in" placeholder="https://…jpg"></div>'+
+    '<div class="dbtns"><button class="btn" id="cvSaveUrl">Usar ese enlace</button>'+
+      (cur?'<button class="btn ghost" id="cvClear">Quitar portada propia</button>':'')+
+      '<button class="btn ghost" id="cvCancel">Cerrar</button></div>'+
+    '<p class="src">En el celular: mantén pulsada la portada en Buscalibre → “Copiar imagen” → vuelve aquí → “Pegar imagen”. Si tu teléfono no deja copiar la imagen, usa “Copiar dirección de la imagen” y pégala en el campo de arriba.</p>';
+  openModal2();PASTETARGET=b;
+  const fab=el("backFab2");if(fab)fab.style.display="none";
+  const close=()=>{PASTETARGET=null;const f=el("backFab2");if(f)f.style.display="";closeModal2()};
+  el("cvCancel").onclick=close;
+  el("cvPaste").onclick=()=>pasteCover(b);
+  el("cvGal").onclick=()=>{PENDCOVER=b;el("coverPick").click()};
+  el("cvCam").onclick=()=>{PENDCOVER=b;el("coverShot").click()};
+  el("cvSaveUrl").onclick=()=>coverFromURL(b,el("cvUrl").value);
+  const cl=el("cvClear");if(cl)cl.onclick=async()=>{
+    try{const db=await idb();db.transaction("covers","readwrite").objectStore("covers").delete(b.id)}catch(e){}
+    try{if(COVERS[b.id])URL.revokeObjectURL(COVERS[b.id])}catch(e){}
+    delete COVERS[b.id];const o=coverOverStore();delete o[b.id];saveCoverOver(o);
+    close();render();openDetail(b.i);toast("Portada propia quitada.");ghSyncAll()}}
+/* galería */
+el("coverPick").onchange=e=>{const f=e.target.files&&e.target.files[0];e.target.value="";
+  if(f&&PENDCOVER)saveCoverBlob(PENDCOVER,f)};
 
 </script>
 </body>
