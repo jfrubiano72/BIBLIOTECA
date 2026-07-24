@@ -195,6 +195,8 @@ footer{text-align:center;color:#9A9384;font-size:12px;padding:6px 16px 24px}
 .redinfo .rmeta{font-size:13px;color:var(--meta);margin-bottom:10px}
 .redinfo .chipline{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .redinfo .rchip{background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12.5px;cursor:pointer}
+
+textarea.in{font-family:inherit;line-height:1.45;resize:vertical}
 </style>
 </head>
 <body>
@@ -251,6 +253,7 @@ footer{text-align:center;color:#9A9384;font-size:12px;padding:6px 16px 24px}
     <div class="view-head"><div><h2>Mapa de conexiones</h2><p id="redSub">Toca un punto para ver con qué se conecta</p></div>
       <div class="segw"><button class="seg on" id="rWords">Palabras</button><button class="seg" id="rAuth">Autores</button></div>
     </div>
+    <input id="redQ" class="ainput" type="search" placeholder="Escribe una palabra (ej: cerebro, marca, atención)">
     <div class="redwrap"><canvas id="redCv"></canvas></div>
     <div id="redInfo" class="redinfo"></div>
   </section>
@@ -307,6 +310,10 @@ const firstAuthor=s=>splitAuthors(s)[0]||"";
 const color=c=>COLORS[c]||DEFAULT_COLOR; const el=id=>document.getElementById(id);
 let CACHE={};try{CACHE=JSON.parse(localStorage.getItem("bib_cache_v2")||"{}")}catch(e){CACHE={}}
 function saveCache(){try{localStorage.setItem("bib_cache_v2",JSON.stringify(CACHE))}catch(e){}}
+/* limpia biografías guardadas antes de la corrección de nombres */
+(function(){const V="4";try{if(localStorage.getItem("bib_cache_ver")!==V){
+  let n=0;Object.keys(CACHE).forEach(k=>{if(k.indexOf("wk:")===0){delete CACHE[k];n++}});
+  localStorage.setItem("bib_cache_ver",V);saveCache()}}catch(e){}})();
 let state={q:"",cat:"",author:"",ed:"",dec:"",sort:"t",view:"explorar",authSort:"alpha",authQ:""};
 var thumbObs=null;var COVERS={};var COVEROVER={};
 let CURRENT=null, VIDBOOKS=new Set();
@@ -412,11 +419,14 @@ function renderExtraMetrics(){const box=el("mExtra");if(!box)return;
 
 /* ---- online lookups (robustos) ---- */
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-async function fetchJSON(u,tries){tries=tries||2;let wait=300;
+var GB_COOL=0;
+function gbCooling(){return Date.now()<GB_COOL}
+async function fetchJSON(u,tries){tries=tries||2;let wait=500;
   for(let k=0;k<tries;k++){try{const r=await fetch(u);
-    if(r.status===429||r.status>=500){await sleep(wait);wait*=2.4;continue}
+    if(r.status===429){GB_COOL=Date.now()+120000;throw new Error("429")}
+    if(r.status>=500){await sleep(wait);wait*=2.2;continue}
     if(!r.ok)throw new Error("http"+r.status);return await r.json()}
-   catch(e){if(k===tries-1)throw e;await sleep(wait);wait*=2.4}}
+   catch(e){if((""+e.message)==="429")throw e;if(k===tries-1)throw e;await sleep(wait);wait*=2.2}}
   throw new Error("fail")}
 function tVariants(t){const out=[t];const cut=(t||"").split(/[:–—]|\s-\s/)[0].trim();
   if(cut&&cut.length>3&&cut!==t)out.push(cut);
@@ -447,8 +457,10 @@ async function lookupBook(b,force){const key="gb:"+b.i;const c=CACHE[key];
   if(c&&!force&&c._done)return c;
   const info={};let neterr=false;const a=firstAuthor(b.a);const qs=[];
   tVariants(b.t).forEach(t=>{if(a){qs.push('intitle:"'+t+'"+inauthor:"'+a+'"');qs.push(t+" "+a)}qs.push('intitle:"'+t+'"')});
-  const seen={};const queries=qs.filter(q=>seen[q]?false:(seen[q]=true)).slice(0,3);
-  for(const q of queries){
+  const seen={};const queries=qs.filter(q=>seen[q]?false:(seen[q]=true)).slice(0,2);
+  if(gbCooling()){try{await olLookup(b,info)}catch(e){}
+    if(info.cover||info.synopsis){info._done=true;CACHE[key]=info;saveCache();return info}}
+  for(const q of (gbCooling()?[]:queries)){
     try{const j=await fetchJSON('https://www.googleapis.com/books/v1/volumes?q='+encodeURIComponent(q)+'&maxResults=5&country=US');
       const items=j.items||[];let best=null;
       for(const it of items){const vi=it.volumeInfo;if(!vi)continue;
@@ -462,6 +474,7 @@ async function lookupBook(b,force){const key="gb:"+b.i;const c=CACHE[key];
         if(!info.link&&best.infoLink)info.link=best.infoLink;
         if(!info.pages&&best.pageCount)info.pages=best.pageCount;
         if(!info.lang&&best.language)info.lang=best.language;
+        if(!info.cats&&best.categories)info.cats=best.categories.slice(0,4);
         if(!info.isbn&&best.industryIdentifiers){const ii=best.industryIdentifiers;
           const i13=ii.find(x=>x.type==="ISBN_13"),i10=ii.find(x=>x.type==="ISBN_10");
           info.isbn=(i13&&i13.identifier)||(i10&&i10.identifier)||""}
@@ -580,17 +593,23 @@ async function shareVideo(id,b){let rec;try{rec=await idbGet(id)}catch(e){}if(!r
 
 /* ---- year enrichment ---- */
 let ENRICHING=false;
-async function enrichAll(onProg,onlyMissing,force){if(ENRICHING)return{ok:0,miss:0};ENRICHING=true;
-  const queue=BOOKS.filter(b=>onlyMissing?!((CACHE["gb:"+b.i]||{}).cover):true);
-  const total=queue.length;let done=0,ok=0;
-  async function worker(){while(queue.length){const b=queue.shift();
-    try{const inf=await lookupBook(b,force);if(inf&&inf.cover)ok++}catch(e){}
-    done++;if(onProg)onProg(done,total);await sleep(90)}}
-  await Promise.all([worker(),worker()]);ENRICHING=false;return{ok:ok,miss:total-ok}}
+async function enrichAll(onProg,onlyMissing,force){if(ENRICHING)return{ok:0,miss:0,stopped:false};ENRICHING=true;
+  const queue=BOOKS.filter(b=>onlyMissing?!((CACHE["gb:"+b.i]||{}).cover&&(CACHE["gb:"+b.i]||{}).synopsis):true);
+  const total=queue.length;let done=0,ok=0,hits429=0,stopped=false;
+  while(queue.length){const b=queue.shift();
+    try{const inf=await lookupBook(b,force);if(inf&&(inf.cover||inf.synopsis))ok++;hits429=0}
+    catch(e){if((""+(e&&e.message)).indexOf("429")>=0)hits429++}
+    if(gbCooling())hits429++;
+    done++;if(onProg)onProg(done,total,hits429);
+    if(hits429>=6){stopped=true;break}
+    await sleep(gbCooling()?2500:700)}
+  ENRICHING=false;return{ok:ok,miss:total-ok,stopped:stopped}}
 async function enrichYears(){const btn=el("enrichBtn");if(ENRICHING){alert("Ya se están cargando los datos, espera a que termine.");return}
   btn.disabled=true;btn.textContent="Cargando…";el("prog").classList.add("show");
   const st=el("enrStat");
-  await enrichAll((d,t)=>{el("pfill").style.width=Math.round(d/t*100)+"%";if(st)st.textContent="Cargando "+d+" de "+t+"…"},false,false);
+  const rr=await enrichAll((d,t)=>{el("pfill").style.width=Math.round(d/t*100)+"%";
+    if(st)st.textContent="Cargando "+d+" de "+t+"…"+(gbCooling()?" · Google limitó el ritmo (429), voy más despacio":"")},true,false);
+  if(rr.stopped&&st)st.innerHTML="<b>Google bloqueó temporalmente las consultas (error 429).</b> Es un límite por exceso de peticiones: espera unos minutos y vuelve a tocar el botón. Lo que ya se descargó quedó guardado.";
   const faltan=BOOKS.filter(b=>!((CACHE["gb:"+b.i]||{}).cover)).length;
   if(st)st.textContent=faltan?("Listas "+(BOOKS.length-faltan)+" de "+BOOKS.length+" portadas. Faltan "+faltan+"."):"¡Listo! Todas cargadas.";
   btn.textContent=faltan?"Reintentar faltantes":"Actualizar";btn.disabled=false;renderYears();renderMetrics();render()}
@@ -652,7 +671,9 @@ function ytOver(){try{return JSON.parse(localStorage.getItem("yt_over")||"{}")}c
 function ytId(u){if(!u)return"";const m=(""+u).match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);return m?m[1]:""}
 function renderYT(b){const box=el("dyt");if(!box)return;const id=b.yt||ytOver()[norm(b.t+"|"+b.a)]||"";
   box.innerHTML=id?'<div class="ytwrap"><iframe src="https://www.youtube.com/embed/'+id+'" frameborder="0" allow="encrypted-media" allowfullscreen></iframe></div>':""}
-function setYT(b){const u=prompt("Pega el enlace de YouTube del video (no listado o público):","");if(u==null)return;const id=ytId(u);if(!id){alert("No reconocí el enlace de YouTube.");return}
+function setYT(b){formModal("Enlace de YouTube",[{label:"Pega el enlace del video",val:""}],vals=>doYT(b,vals[0]),
+  "Sube el video a YouTube como “No listado” y pega aquí el enlace.")}
+function doYT(b,u){const id=ytId(u);if(!id){alert("No reconocí el enlace de YouTube.");return}
   const o=ytOver();o[norm(b.t+"|"+b.a)]=id;try{localStorage.setItem("yt_over",JSON.stringify(o))}catch(e){}b.yt=id;renderYT(b);
   if(b.n==="Añadido"){const ad=loadAdds();const k=norm(b.t+"|"+b.a);const it=ad.find(x=>norm((x.t||"")+"|"+(x.a||""))===k);if(it){it.yt=id;saveAddsLocal(ad);ghCommitReplace(ad)}}}
 function applyAdds(adds){if(!adds||!adds.length)return;const have=new Set(BOOKS.map(b=>norm((b.t||"")+"|"+(b.a||""))));
@@ -695,7 +716,7 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
   '<div class="fld"><label>Token (fine-grained, solo este repo, permiso Contents: Read and write)</label><input id="s_token" class="in" type="password" placeholder="'+(ghToken()?"•••• guardado ••••":"github_pat_…")+'"></div>'+
   '<div class="dbtns"><button class="btn" id="s_save">Guardar</button><button class="btn ghost" id="s_test">Probar conexión</button></div><p class="src" id="s_msg"></p>'+
   '<section><h3>Aplicación</h3>'+
-    '<p class="src">Versión instalada: <b>2026.07.24-0352</b></p>'+
+    '<p class="src">Versión instalada: <b>2026.07.24-0410</b></p>'+
     '<div class="dbtns"><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button></div><div class="src" id="diagOut"></div>'+
     '<p class="src">La app se actualiza sola al abrirla con conexión. Si algo no se ve nuevo, toca “Buscar actualizaciones”.</p></section>';
   openModal2();
@@ -734,7 +755,7 @@ function coversCached(){let n=0;for(let i=0;i<BOOKS.length;i++){if((CACHE["gb:"+
 function showBanner(){const bn=el("coverBanner");if(!bn)return;bn.style.display=(coversCached()>=25||location.protocol==="file:")?"none":"flex"}
 (function(){const c=el("cbanBtn");if(!c)return;let pass=0;
   c.onclick=async()=>{c.disabled=true;const txt=el("cbanTxt");pass++;
-    const r=await enrichAll((d,t)=>{if(txt)txt.textContent="Cargando portadas… "+d+"/"+t},pass>1,false);
+    const r=await enrichAll((d,t)=>{if(txt)txt.textContent="Cargando… "+d+"/"+t+(gbCooling()?" (Google limitó el ritmo, voy más despacio)":"")},pass>1,false);
     render();
     const faltan=BOOKS.filter(b=>!((CACHE["gb:"+b.i]||{}).cover)).length;
     if(txt)txt.textContent=faltan?("Listas "+(BOOKS.length-faltan)+" de "+BOOKS.length+". Faltan "+faltan+" (algunas no están en las bases)."):"¡Listo! Todas las portadas cargadas.";
@@ -774,9 +795,9 @@ function catOver(){try{return JSON.parse(localStorage.getItem("cat_over")||"{}")
 function applyCatOver(){const o=catOver();if(!Object.keys(o).length)return;
   BOOKS.forEach(b=>{const k=norm((b.t||"")+"|"+(b.a||""));if(o[k])b.c=o[k]});deriveData()}
 function editCat(b){const cur=b.c||"";
-  const opts=CATS.slice().sort((a,b2)=>a.localeCompare(b2,"es"));
-  const n=prompt("Temática de \u201c"+b.t+"\u201d\n\nActual: "+cur+"\n\nEscribe la nueva (o elige una de estas):\n\n"+opts.join(" · "),cur);
-  if(n==null)return;const nv=n.trim();if(!nv||nv===cur)return;
+  formModal("Temática de “"+b.t+"”",[{label:"Temática",val:cur}],vals=>doCat(b,vals[0]),
+    "Escribe la temática. Sugerencias: "+CATS.slice().sort((a,b2)=>a.localeCompare(b2,"es")).slice(0,12).join(" · "))}
+function doCat(b,n){const cur=b.c||"";const nv=(n||"").trim();if(!nv||nv===cur)return;
   const o=catOver();o[norm((b.t||"")+"|"+(b.a||""))]=nv;
   try{localStorage.setItem("cat_over",JSON.stringify(o))}catch(e){}
   b.c=nv;if(!CATS.includes(nv))CATS.push(nv);deriveData();rebuildUI();
@@ -914,8 +935,9 @@ function yearOver(){try{return JSON.parse(localStorage.getItem("year_over")||"{}
 function bookYear(b){const o=yearOver()[b.id];if(o)return +o;
   const y=(CACHE["gb:"+b.i]||{}).year;return (y&&/^\d{4}$/.test(y))?+y:0}
 function editYear(b){const cur=bookYear(b)||"";
-  const v=prompt("Año de publicación de “"+b.t+"”\n\n(Google Books a veces trae un año equivocado; aquí puedes corregirlo)",cur);
-  if(v==null)return;const n=(""+v).trim();
+  formModal("Año de publicación",[{label:"Año (4 cifras)",val:cur,type:"num"}],vals=>doYear(b,vals[0]),
+    "Google Books a veces trae un año equivocado; aquí lo corriges.")}
+function doYear(b,v){const n=(""+v).trim();
   const o=yearOver();
   if(!n){delete o[b.id]}else{if(!/^\d{4}$/.test(n)){alert("Escribe un año de 4 cifras.");return}o[b.id]=n}
   try{localStorage.setItem("year_over",JSON.stringify(o))}catch(e){}
@@ -959,133 +981,164 @@ function metaOver(){try{return JSON.parse(localStorage.getItem("meta_over")||"{}
 function saveMeta(o){try{localStorage.setItem("meta_over",JSON.stringify(o))}catch(e){}}
 function applyMetaOver(){const o=metaOver();if(!Object.keys(o).length)return;
   BOOKS.forEach(b=>{const m=o[b.id];if(!m)return;if(m.t)b.t=m.t;if(m.a!=null)b.a=m.a});deriveData()}
-function editMeta(b){
-  const t=prompt("Título del libro (corrígelo si quedó mal leído):",b.t||"");
-  if(t==null)return;
-  const a=prompt("Autor o autores (separa con comas si son varios):",b.a||"");
-  if(a==null)return;
-  const o=metaOver();const m=o[b.id]||{};
-  if(t.trim())m.t=t.trim();
-  m.a=a.trim();
-  o[b.id]=m;saveMeta(o);
-  b.t=m.t||b.t;b.a=m.a;
-  if(b.n==="Confirmar autor"||b.n==="Confirmar título"||b.n==="Confirmar")b.n="";
-  deriveData();rebuildUI();openDetail(b.i);toast("Datos corregidos.");ghSyncAll()}
+function formModal(title,fields,onSave,note){
+  el("modal2").innerHTML='<h2>'+esc(title)+'</h2>'+(note?'<p class="src">'+note+'</p>':'')+
+    fields.map((f,i)=>'<div class="fld"><label>'+esc(f.label)+'</label>'+
+      (f.type==="area"?'<textarea id="fm'+i+'" class="in" rows="7">'+esc(f.val||"")+'</textarea>'
+                      :'<input id="fm'+i+'" class="in" '+(f.type==="num"?'inputmode="numeric" ':'')+'value="'+esc(f.val||"")+'">')+'</div>').join("")+
+    '<div class="dbtns"><button class="btn" id="fmSave">Guardar</button><button class="btn ghost" id="fmCancel">Cancelar</button></div>';
+  openModal2();
+  el("fmCancel").onclick=closeModal2;
+  el("fmSave").onclick=()=>{const vals=fields.map((f,i)=>el("fm"+i).value);closeModal2();onSave(vals)}}
+function editMeta(b){formModal("Corregir libro",
+  [{label:"Título",val:b.t},{label:"Autor (separa varios con comas)",val:b.a}],
+  vals=>{const[t,a]=vals;const o=metaOver();const m=o[b.id]||{};
+    if(t.trim())m.t=t.trim();m.a=a.trim();o[b.id]=m;saveMeta(o);
+    b.t=m.t||b.t;b.a=m.a;if((b.n||"").indexOf("Confirmar")===0)b.n="";
+    try{delete CACHE["gb:"+b.i]}catch(e){}
+    deriveData();rebuildUI();openDetail(b.i);toast("Datos corregidos.");ghSyncAll()},
+  "Corrige lo que quedó mal leído en la foto. Se guarda y se comparte con Maritza.")}
 function editSyn(b){const o=metaOver();const cur=(o[b.id]||{}).syn||(CACHE["gb:"+b.i]||{}).synopsis||"";
-  const v=prompt("Escribe la sinopsis de “"+b.t+"” (queda guardada y se comparte):",cur);
-  if(v==null)return;const m=o[b.id]||{};
-  if(v.trim())m.syn=v.trim(); else delete m.syn;
-  o[b.id]=m;saveMeta(o);openDetail(b.i);toast("Sinopsis guardada.");ghSyncAll()}
+  formModal("Sinopsis de “"+b.t+"”",[{label:"Sinopsis",val:cur,type:"area"}],
+    vals=>{const v=vals[0];const m=o[b.id]||{};if(v.trim())m.syn=v.trim();else delete m.syn;
+      o[b.id]=m;saveMeta(o);openDetail(b.i);toast("Sinopsis guardada.");ghSyncAll()},
+    "Si el libro no está en las bases de datos, escríbela tú. Tu versión tiene prioridad.")}
 
-/* ===== mapa de conexiones (red) ===== */
-const STOP=new Set(("de la el los las un una unos unas y o que en para con por del al se su sus es son era como mas más sobre este esta estos estas entre cuando todo toda todos todas nos lo si no ya ha han muy sin pero te tu mi me le les hay ser fue eres cual donde desde hasta tambien también asi así aunque porque cada otro otra otros otras mismo misma puede pueden hacer hace hacia ante tras ese esa eso aquel cualquier libro libros autor autora edicion edición obra paginas páginas the of and to in a for is on with your you this that how what why who from it its an be are we our will can new york times bestseller best seller").split(" "));
-function tokens(txt){return norm(txt||"").replace(/[^a-z0-9ñ\s]/g," ").split(/\s+/)
-  .filter(w=>w.length>3&&!STOP.has(w))}
-var RED={nodes:[],links:[],raf:null,sel:null,drag:null,mode:"words",cv:null,ctx:null,W:0,H:0,dpr:1};
+/* ===== mapa de conexiones 3D ===== */
+const STOP=new Set(("de la el los las un una unos unas y o u que en para con por del al se su sus es son era como mas más sobre este esta estos estas entre cuando todo toda todos todas nos lo si no ya ha han muy sin pero te tu mi me le les hay ser fue eres cual donde desde hasta tambien también asi así aunque porque cada otro otra otros otras mismo misma puede pueden pueda hacer hace hacia ante tras ese esa eso aquel cualquier libro libros autor autora autores edicion edición obra paginas páginas capitulo capítulo indice índice the of and to in a for is on with your you this that how what why who from it its an be are we our will can new york times bestseller best seller book books author general").split(" "));
+function tokens(txt){return norm(txt||"").replace(/[^a-z0-9ñ\s]/g," ").split(/\s+/).filter(w=>w.length>3&&!STOP.has(w))}
+const PALETTE=["#B9772A","#3A6EA5","#2E8B7B","#C24A6B","#7A5AA6","#B2842B","#2C7C91","#C0642F","#4C7A34","#6C63B5"];
+var RED={nodes:[],links:[],raf:null,sel:null,drag:null,mode:"words",cv:null,ctx:null,W:0,H:0,dpr:1,
+  rx:-0.25,ry:0.5,vrx:0,vry:0.0035,last:null,q:""};
+function bookText(b){const m=metaOver()[b.id]||{},c=CACHE["gb:"+b.i]||{};
+  return b.t+" "+b.c+" "+(c.cats?c.cats.join(" "):"")+" "+((m.syn||c.synopsis||"").slice(0,700))}
 function buildRed(mode){
   const nodes=[],links=[],idx={};
   if(mode==="authors"){
-    const top=AUTH_COUNT.slice(0,45);
-    top.forEach(a=>{idx[a]=nodes.length;nodes.push({id:a,label:a,w:AUTH[a].length,type:"a"})});
+    const top=AUTH_COUNT.slice(0,50);
+    top.forEach(a=>{idx[a]=nodes.length;
+      const c=BOOKS[AUTH[a][0]].c;nodes.push({id:a,label:a,w:AUTH[a].length,type:"a",cat:c})});
     const byCat={};
-    top.forEach(a=>{AUTH[a].forEach(i=>{const c=BOOKS[i].c;(byCat[c]=byCat[c]||new Set()).add(a)})});
+    top.forEach(a=>AUTH[a].forEach(i=>{const c=BOOKS[i].c;(byCat[c]=byCat[c]||new Set()).add(a)}));
     Object.keys(byCat).forEach(c=>{const arr=[...byCat[c]];
-      for(let i=0;i<arr.length;i++)for(let j=i+1;j<arr.length;j++)links.push([idx[arr[i]],idx[arr[j]],1])});
+      for(let i=0;i<arr.length;i++)for(let j=i+1;j<arr.length&&j<i+7;j++)links.push([idx[arr[i]],idx[arr[j]],1])});
   }else{
-    const freq={},docs=[];
-    BOOKS.forEach(b=>{const syn=(metaOver()[b.id]||{}).syn||(CACHE["gb:"+b.i]||{}).synopsis||"";
-      const ws=new Set(tokens(b.t+" "+b.c+" "+syn.slice(0,600)));
-      docs.push({b:b,ws:ws});ws.forEach(w=>freq[w]=(freq[w]||0)+1)});
-    const top=Object.keys(freq).filter(w=>freq[w]>=3).sort((a,b)=>freq[b]-freq[a]).slice(0,55);
+    const freq={},docs=[],catOf={};
+    BOOKS.forEach(b=>{const ws=new Set(tokens(bookText(b)));docs.push({b,ws});
+      ws.forEach(w=>{freq[w]=(freq[w]||0)+1;(catOf[w]=catOf[w]||{})[b.c]=(catOf[w][b.c]||0)+1})});
+    const top=Object.keys(freq).filter(w=>freq[w]>=3).sort((a,b)=>freq[b]-freq[a]).slice(0,70);
     const T=new Set(top);
-    top.forEach(w=>{idx[w]=nodes.length;nodes.push({id:w,label:w,w:freq[w],type:"w"})});
+    top.forEach(w=>{idx[w]=nodes.length;
+      const cs=catOf[w]||{};const domin=Object.keys(cs).sort((a,b)=>cs[b]-cs[a])[0]||"";
+      nodes.push({id:w,label:w,w:freq[w],type:"w",cat:domin})});
     const pair={};
     docs.forEach(d=>{const ws=[...d.ws].filter(w=>T.has(w));
       for(let i=0;i<ws.length;i++)for(let j=i+1;j<ws.length;j++){const k=ws[i]<ws[j]?ws[i]+"|"+ws[j]:ws[j]+"|"+ws[i];pair[k]=(pair[k]||0)+1}});
-    Object.keys(pair).filter(k=>pair[k]>=2).sort((a,b)=>pair[b]-pair[a]).slice(0,180)
+    Object.keys(pair).filter(k=>pair[k]>=2).sort((a,b)=>pair[b]-pair[a]).slice(0,220)
       .forEach(k=>{const[p,q]=k.split("|");links.push([idx[p],idx[q],pair[k]])});
   }
-  const R=Math.min(RED.W,RED.H)*0.36||150;
-  nodes.forEach((n,i)=>{const a=2*Math.PI*i/nodes.length;
-    n.x=RED.W/2+Math.cos(a)*R*(0.6+0.4*Math.random());
-    n.y=RED.H/2+Math.sin(a)*R*(0.6+0.4*Math.random());n.vx=0;n.vy=0;
-    n.r=Math.max(5,Math.min(19,4+Math.sqrt(n.w)*2.6))});
+  const cats=[...new Set(nodes.map(n=>n.cat))];
+  nodes.forEach((n,k)=>{const a=Math.acos(1-2*(k+0.5)/nodes.length),b=Math.PI*(1+Math.sqrt(5))*k,R=110;
+    n.x=R*Math.sin(a)*Math.cos(b);n.y=R*Math.sin(a)*Math.sin(b);n.z=R*Math.cos(a);
+    n.vx=n.vy=n.vz=0;n.r=Math.max(4,Math.min(15,3+Math.sqrt(n.w)*2.1));
+    n.col=PALETTE[Math.max(0,cats.indexOf(n.cat))%PALETTE.length]});
   RED.nodes=nodes;RED.links=links;RED.sel=null}
 function stepRed(){const N=RED.nodes,L=RED.links;
   for(let i=0;i<N.length;i++){const a=N[i];
     for(let j=i+1;j<N.length;j++){const b=N[j];
-      let dx=b.x-a.x,dy=b.y-a.y,d2=dx*dx+dy*dy;if(d2<1)d2=1;
-      const d=Math.sqrt(d2);const f=2400/d2;
-      const fx=dx/d*f,fy=dy/d*f;a.vx-=fx;a.vy-=fy;b.vx+=fx;b.vy+=fy}}
+      let dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,d2=dx*dx+dy*dy+dz*dz;if(d2<25)d2=25;
+      const d=Math.sqrt(d2),f=9000/d2/d;
+      a.vx-=dx*f;a.vy-=dy*f;a.vz-=dz*f;b.vx+=dx*f;b.vy+=dy*f;b.vz+=dz*f}}
   L.forEach(l=>{const a=N[l[0]],b=N[l[1]];if(!a||!b)return;
-    const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1;
-    const f=(d-70)*0.012*Math.min(2,l[2]);
-    const fx=dx/d*f,fy=dy/d*f;a.vx+=fx;a.vy+=fy;b.vx-=fx;b.vy-=fy});
-  N.forEach(n=>{n.vx+=(RED.W/2-n.x)*0.004;n.vy+=(RED.H/2-n.y)*0.004;
-    if(RED.drag===n){n.vx=n.vy=0;return}
-    n.vx*=0.82;n.vy*=0.82;n.x+=Math.max(-6,Math.min(6,n.vx));n.y+=Math.max(-6,Math.min(6,n.vy));
-    n.x=Math.max(n.r+2,Math.min(RED.W-n.r-2,n.x));n.y=Math.max(n.r+2,Math.min(RED.H-n.r-2,n.y))})}
+    const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,d=Math.hypot(dx,dy,dz)||1;
+    const f=(d-95)*0.0055*Math.min(2.2,l[2]);
+    a.vx+=dx/d*f;a.vy+=dy/d*f;a.vz+=dz/d*f;b.vx-=dx/d*f;b.vy-=dy/d*f;b.vz-=dz/d*f});
+  N.forEach(n=>{n.vx-=n.x*0.0016;n.vy-=n.y*0.0016;n.vz-=n.z*0.0016;
+    n.vx*=0.86;n.vy*=0.86;n.vz*=0.86;n.x+=n.vx;n.y+=n.vy;n.z+=n.vz});
+  if(!RED.drag){RED.ry+=RED.vry;RED.rx+=RED.vrx;RED.vrx*=0.94;RED.vry=RED.vry*0.97+0.0035*0.03}}
+function proj(n){const cy=Math.cos(RED.ry),sy=Math.sin(RED.ry),cx=Math.cos(RED.rx),sx=Math.sin(RED.rx);
+  let x=n.x*cy-n.z*sy,z=n.x*sy+n.z*cy,y=n.y*cx-z*sx;z=n.y*sx+z*cx;
+  const f=340/(340+z);
+  return{sx:RED.W/2+x*f,sy:RED.H/2+y*f,s:f,z:z}}
 function drawRed(){const c=RED.ctx;if(!c)return;const N=RED.nodes;
   c.clearRect(0,0,RED.W,RED.H);
-  const selIdx=RED.sel!=null?RED.sel:-1;
-  const nb=new Set();if(selIdx>=0)RED.links.forEach(l=>{if(l[0]===selIdx)nb.add(l[1]);if(l[1]===selIdx)nb.add(l[0])});
-  RED.links.forEach(l=>{const a=N[l[0]],b=N[l[1]];if(!a||!b)return;
-    const on=selIdx<0||l[0]===selIdx||l[1]===selIdx;
-    c.strokeStyle=on?"rgba(185,119,42,.55)":"rgba(23,34,59,.07)";
-    c.lineWidth=on?1.5:0.8;c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke()});
-  N.forEach((n,i)=>{const on=selIdx<0||i===selIdx||nb.has(i);
-    c.beginPath();c.arc(n.x,n.y,n.r,0,6.2832);
-    c.fillStyle=i===selIdx?"#B9772A":(on?"#3B4763":"rgba(59,71,99,.22)");c.fill();
-    if(on&&(n.r>8||i===selIdx)){c.fillStyle=i===selIdx?"#17223B":"rgba(23,34,59,.75)";
-      c.font=(i===selIdx?"600 ":"")+Math.max(10,Math.min(13,n.r))+"px Inter, sans-serif";
-      c.textAlign="center";c.fillText(n.label,n.x,n.y-n.r-4)}})}
+  const g=c.createLinearGradient(0,0,0,RED.H);g.addColorStop(0,"#FBFAF7");g.addColorStop(1,"#F2EFE7");
+  c.fillStyle=g;c.fillRect(0,0,RED.W,RED.H);
+  const P=N.map(proj);
+  const sel=RED.sel!=null?RED.sel:-1;
+  const nb=new Set();if(sel>=0)RED.links.forEach(l=>{if(l[0]===sel)nb.add(l[1]);if(l[1]===sel)nb.add(l[0])});
+  const qn=RED.q?norm(RED.q):"";
+  RED.links.forEach(l=>{const a=P[l[0]],b=P[l[1]];if(!a||!b)return;
+    const on=sel<0||l[0]===sel||l[1]===sel;
+    c.strokeStyle=on?"rgba(185,119,42,"+(0.22+0.5*Math.min(a.s,b.s))+")":"rgba(23,34,59,.05)";
+    c.lineWidth=on?1.4*Math.min(a.s,b.s)+0.3:0.6;
+    c.beginPath();c.moveTo(a.sx,a.sy);c.lineTo(b.sx,b.sy);c.stroke()});
+  const order=N.map((n,i)=>i).sort((a,b)=>P[b].z-P[a].z);
+  order.forEach(i=>{const n=N[i],p=P[i];
+    const match=qn&&norm(n.label).indexOf(qn)>=0;
+    const on=sel<0||i===sel||nb.has(i)||match;
+    const r=Math.max(2.5,n.r*p.s);
+    if(i===sel||match){c.beginPath();c.arc(p.sx,p.sy,r+7,0,6.2832);
+      c.fillStyle=(match&&i!==sel)?"rgba(46,139,123,.20)":"rgba(185,119,42,.22)";c.fill()}
+    c.beginPath();c.arc(p.sx,p.sy,r,0,6.2832);
+    c.fillStyle=i===sel?"#B9772A":(on?n.col:"rgba(120,128,145,.18)");
+    c.globalAlpha=on?(0.55+0.45*p.s):0.5;c.fill();c.globalAlpha=1;
+    if(on&&(r>6||i===sel||match)){c.fillStyle="rgba(23,34,59,"+(i===sel?1:0.72)+")";
+      c.font=(i===sel?"600 ":"")+Math.round(Math.max(9,Math.min(14,10*p.s+2)))+"px Inter, sans-serif";
+      c.textAlign="center";c.fillText(n.label,p.sx,p.sy-r-5)}})}
 function loopRed(){stepRed();drawRed();RED.raf=requestAnimationFrame(loopRed)}
 function sizeRed(){const cv=RED.cv;if(!cv)return;const r=cv.parentNode.getBoundingClientRect();
-  RED.dpr=Math.min(2,window.devicePixelRatio||1);RED.W=Math.max(240,r.width);RED.H=400;
+  RED.dpr=Math.min(2,window.devicePixelRatio||1);RED.W=Math.max(240,r.width);RED.H=430;
   cv.width=RED.W*RED.dpr;cv.height=RED.H*RED.dpr;cv.style.height=RED.H+"px";
   RED.ctx=cv.getContext("2d");RED.ctx.setTransform(RED.dpr,0,0,RED.dpr,0,0)}
 function startRed(){const cv=el("redCv");if(!cv)return;RED.cv=cv;sizeRed();
   if(!RED.nodes.length||RED._mode!==RED.mode){RED._mode=RED.mode;buildRed(RED.mode==="authors"?"authors":"words")}
-  el("redSub").textContent=RED.nodes.length+(RED.mode==="authors"?" autores":" palabras")+" · "+RED.links.length+" conexiones · toca un punto";
-  if(!RED.nodes.length)el("redInfo").innerHTML='<div class="rcard">Aún no hay datos suficientes. Ve a <b>Métricas</b> y toca “Cargar portadas y datos” para traer las sinopsis, y el mapa se llenará.</div>';
+  const syn=BOOKS.filter(b=>(metaOver()[b.id]||{}).syn||(CACHE["gb:"+b.i]||{}).synopsis).length;
+  el("redSub").textContent=RED.nodes.length+(RED.mode==="authors"?" autores":" palabras")+" · "+RED.links.length+" conexiones · gira con el dedo";
+  if(RED.mode!=="authors"&&syn<30)el("redInfo").innerHTML='<div class="rcard">El mapa mejora mucho con las sinopsis: ve a <b>Métricas → Cargar portadas y datos</b>. Ahora mismo hay <b>'+syn+'</b> sinopsis guardadas.</div>';
   if(!RED.raf)loopRed()}
 function stopRed(){if(RED.raf){cancelAnimationFrame(RED.raf);RED.raf=null}}
-function hitRed(x,y){for(let i=RED.nodes.length-1;i>=0;i--){const n=RED.nodes[i];
-  if((x-n.x)**2+(y-n.y)**2<=(n.r+9)**2)return i}return -1}
-function redPos(ev){const r=RED.cv.getBoundingClientRect();
-  const t=ev.touches&&ev.touches[0]?ev.touches[0]:ev;
+function hitRed(x,y){const P=RED.nodes.map(proj);let best=-1,bd=1e9;
+  RED.nodes.forEach((n,i)=>{const p=P[i],d=(x-p.sx)**2+(y-p.sy)**2,rr=(Math.max(3,n.r*p.s)+12)**2;
+    if(d<rr&&d<bd){bd=d;best=i}});return best}
+function redPos(ev){const r=RED.cv.getBoundingClientRect();const t=ev.touches&&ev.touches[0]?ev.touches[0]:ev;
   return{x:t.clientX-r.left,y:t.clientY-r.top}}
 function redSelect(i){RED.sel=i;const n=RED.nodes[i];if(!n){el("redInfo").innerHTML="";return}
   const nb=[];RED.links.forEach(l=>{if(l[0]===i)nb.push(RED.nodes[l[1]]);if(l[1]===i)nb.push(RED.nodes[l[0]])});
   nb.sort((a,b)=>b.w-a.w);
-  if(n.type==="a"){
-    const ids=AUTH[n.id]||[];
-    el("redInfo").innerHTML='<div class="rcard"><h4>'+esc(n.id)+'</h4>'+
-      '<div class="rmeta">'+ids.length+' libro(s) · conectado con '+nb.length+' autores por temática</div>'+
-      '<div class="chipline">'+nb.slice(0,10).map(x=>'<span class="rchip" data-rnode="'+esc(x.id)+'">'+esc(x.id)+'</span>').join("")+'</div>'+
+  const chips=nb.slice(0,12).map(x=>'<span class="rchip" style="border-color:'+x.col+'55" data-rnode="'+esc(x.id)+'">'+esc(x.id)+'</span>').join("");
+  if(n.type==="a"){const ids=AUTH[n.id]||[];
+    el("redInfo").innerHTML='<div class="rcard"><h4 style="color:'+n.col+'">'+esc(n.id)+'</h4>'+
+      '<div class="rmeta">'+ids.length+' libro(s) · '+nb.length+' autores conectados por temática</div>'+
+      '<div class="chipline">'+chips+'</div>'+
       '<button class="btn" data-rauthor="'+esc(n.id)+'">Ver su perfil y sus libros</button></div>'}
-  else{
-    const hits=BOOKS.filter(b=>{const syn=(metaOver()[b.id]||{}).syn||(CACHE["gb:"+b.i]||{}).synopsis||"";
-      return norm(b.t+" "+b.c+" "+syn).includes(n.id)});
+  else{const hits=BOOKS.filter(b=>norm(bookText(b)).includes(n.id));
     const auth={};hits.forEach(b=>splitAuthors(b.a).forEach(a=>auth[a]=(auth[a]||0)+1));
     const tops=Object.keys(auth).sort((a,b)=>auth[b]-auth[a]).slice(0,6);
-    el("redInfo").innerHTML='<div class="rcard"><h4>'+esc(n.id)+'</h4>'+
-      '<div class="rmeta">Aparece en '+hits.length+' libros · se conecta con '+nb.length+' palabras</div>'+
-      '<div class="chipline">'+nb.slice(0,10).map(x=>'<span class="rchip" data-rnode="'+esc(x.id)+'">'+esc(x.id)+'</span>').join("")+'</div>'+
-      (tops.length?'<div class="rmeta">Autores más ligados: '+tops.map(a=>'<span class="rchip" data-rauthor2="'+esc(a)+'">'+esc(a)+' ('+auth[a]+')</span>').join(" ")+'</div>':'')+
+    el("redInfo").innerHTML='<div class="rcard"><h4 style="color:'+n.col+'">'+esc(n.id)+'</h4>'+
+      '<div class="rmeta">En '+hits.length+' libros · '+nb.length+' palabras conectadas · sobre todo en <b>'+esc(n.cat||"—")+'</b></div>'+
+      '<div class="chipline">'+chips+'</div>'+
+      (tops.length?'<div class="chipline">'+tops.map(a=>'<span class="rchip" data-rauthor2="'+esc(a)+'">'+esc(a)+' · '+auth[a]+'</span>').join("")+'</div>':'')+
       '<button class="btn" data-rsearch="'+esc(n.id)+'">Ver los '+hits.length+' libros</button></div>'}}
 (function(){const cv=el("redCv");if(!cv)return;
-  const down=ev=>{const p=redPos(ev);const i=hitRed(p.x,p.y);
-    if(i>=0){RED.drag=RED.nodes[i];redSelect(i)}else{RED.sel=null;el("redInfo").innerHTML=""}
-    if(i>=0)ev.preventDefault()};
-  const move=ev=>{if(!RED.drag)return;const p=redPos(ev);RED.drag.x=p.x;RED.drag.y=p.y;ev.preventDefault()};
+  let moved=false,sx0=0,sy0=0;
+  const down=ev=>{const p=redPos(ev);RED.last=p;sx0=p.x;sy0=p.y;moved=false;
+    const i=hitRed(p.x,p.y);if(i>=0){RED.drag={node:i};redSelect(i)}else{RED.drag={rot:true}}
+    ev.preventDefault()};
+  const move=ev=>{if(!RED.drag)return;const p=redPos(ev);
+    const dx=p.x-RED.last.x,dy=p.y-RED.last.y;RED.last=p;
+    if(Math.abs(p.x-sx0)+Math.abs(p.y-sy0)>6)moved=true;
+    RED.ry+=dx*0.008;RED.rx+=dy*0.006;RED.vry=dx*0.0016;RED.vrx=dy*0.0012;
+    ev.preventDefault()};
   const up=()=>{RED.drag=null};
   cv.addEventListener("mousedown",down);cv.addEventListener("touchstart",down,{passive:false});
   window.addEventListener("mousemove",move);cv.addEventListener("touchmove",move,{passive:false});
   window.addEventListener("mouseup",up);cv.addEventListener("touchend",up);
-  window.addEventListener("resize",()=>{if(state.view==="red"){sizeRed()}});
+  window.addEventListener("resize",()=>{if(state.view==="red")sizeRed()});
   el("rWords").onclick=()=>{RED.mode="words";el("rWords").classList.add("on");el("rAuth").classList.remove("on");el("redInfo").innerHTML="";startRed()};
   el("rAuth").onclick=()=>{RED.mode="authors";el("rAuth").classList.add("on");el("rWords").classList.remove("on");el("redInfo").innerHTML="";startRed()};
+  const rq=el("redQ");if(rq)rq.addEventListener("input",()=>{RED.q=rq.value.trim();
+    if(RED.q){const i=RED.nodes.findIndex(n=>norm(n.label).indexOf(norm(RED.q))>=0);if(i>=0)redSelect(i)}});
   el("redInfo").addEventListener("click",e=>{
     const c=e.target.closest("[data-rnode]");if(c){const i=RED.nodes.findIndex(n=>n.id===c.dataset.rnode);if(i>=0)redSelect(i);return}
     const a=e.target.closest("[data-rauthor]");if(a){openAuthor(a.dataset.rauthor);return}
@@ -1103,7 +1156,13 @@ async function diagnose(){const out=[];
     out.push((r.ok?"OK":"falla "+r.status)+" · Wikipedia (biografías)")}catch(e){out.push("sin acceso · Wikipedia")}
   const tk=ghToken();out.push((tk?(await ghTest()?"OK · GitHub con permiso de escritura":"token inválido o sin permiso · GitHub"):"sin token · GitHub (las portadas y correcciones no se comparten)"));
   const nc=BOOKS.filter(b=>(CACHE["gb:"+b.i]||{}).synopsis).length;
-  out.push(nc+" de "+BOOKS.length+" libros ya tienen sinopsis guardada");
+  const nv=BOOKS.filter(b=>(CACHE["gb:"+b.i]||{}).cover).length;
+  out.push(nc+" de "+BOOKS.length+" con sinopsis · "+nv+" con portada");
+  if(gbCooling())out.push("Google está limitando ahora mismo: espera unos minutos");
+  try{const reg=await navigator.serviceWorker.getRegistration();
+    out.push(reg?("OK · app instalable (service worker activo)"):"falta subir sw.js · sin él no aparece “Instalar aplicación”")}
+  catch(e){out.push("no se pudo revisar el service worker")}
+  out.push(PBASE===null?"fotos: no encontradas todavía":"fotos: encontradas en “"+(PBASE||"raíz")+"”");
   return out}
 applyMetaOver();rebuildUI();
 
