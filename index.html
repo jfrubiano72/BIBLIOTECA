@@ -203,6 +203,10 @@ textarea.in{font-family:inherit;line-height:1.45;resize:vertical}
 #worldCv{display:block;width:100%;height:230px}
 .ctrrow{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:6px;cursor:pointer}
 .ctrrow .cn{font-size:14.5px}.ctrrow .cc{font-size:12.5px;color:var(--meta)}
+
+body.ro #addBtn,body.ro [data-act="editmeta"],body.ro [data-act="editsyn"],body.ro [data-act="edityear"],
+body.ro [data-act="editcat"],body.ro [data-act="setcover"],body.ro [data-act="rec"],body.ro [data-act="yt"],
+body.ro #newShelfBtn,body.ro #shelfNewPhoto{display:none !important}
 </style>
 </head>
 <body>
@@ -654,7 +658,8 @@ async function enrichYears(){const btn=el("enrichBtn");if(ENRICHING){alert("Ya s
     "Van <b>"+(BOOKS.length-faltanS)+"</b> de "+BOOKS.length+" sinopsis. Se descargan de a 40 por tanda: vuelve a tocar el botón para continuar.";
   const faltan=BOOKS.filter(b=>!((CACHE["gb:"+b.i]||{}).cover)).length;
   if(st)st.textContent=faltan?("Listas "+(BOOKS.length-faltan)+" de "+BOOKS.length+" portadas. Faltan "+faltan+"."):"¡Listo! Todas cargadas.";
-  btn.textContent=faltan?"Reintentar faltantes":"Actualizar";btn.disabled=false;renderYears();renderMetrics();render()}
+  btn.textContent=faltan?"Reintentar faltantes":"Actualizar";btn.disabled=false;renderYears();renderMetrics();render();
+  if(syncOn())publishMeta()}
 function renderYears(){const years={};BOOKS.forEach(b=>{const y=bookYear(b);if(y)years[y]=(years[y]||0)+1});
   const keys=Object.keys(years).sort();if(!keys.length){el("mByYear").innerHTML="";return}
   const dec={};keys.forEach(y=>{const d=(Math.floor(+y/10)*10)+"s";dec[d]=(dec[d]||0)+years[y]});
@@ -760,13 +765,15 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
     '<p class="src"><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener"><b>Abrir GitHub para crear el token →</b></a></p></div>'+
   '<div class="dbtns"><button class="btn" id="s_save">Guardar</button><button class="btn ghost" id="s_test">Probar conexión</button></div><p class="src" id="s_msg"></p>'+
   '<section><h3>Aplicación</h3>'+
-    '<p class="src">Versión instalada: <b>2026.07.24-0530</b></p>'+
-    '<p class="src" id="syncState"></p><div class="dbtns"><button class="btn" id="s_pub">Publicar todo ahora</button><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button></div><div class="src" id="diagOut"></div>'+
+    '<p class="src">Versión instalada: <b>2026.07.24-0615</b></p>'+
+    '<p class="src" id="syncState"></p><div class="dbtns"><button class="btn" id="s_pub">Publicar todo ahora</button><button class="btn ghost" id="s_meta">Publicar sinopsis y portadas</button><button class="btn ghost" id="s_share">Compartir la biblioteca</button><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button></div><div class="src" id="diagOut"></div>'+
     '<p class="src">La app se actualiza sola al abrirla con conexión. Si algo no se ve nuevo, toca “Buscar actualizaciones”.</p></section>';
   openModal2();
   el("s_save").onclick=()=>{try{localStorage.setItem("gh_owner",el("s_owner").value.trim());localStorage.setItem("gh_repo",el("s_repo").value.trim());localStorage.setItem("gh_branch",el("s_branch").value.trim()||"main");const tk=el("s_token").value.trim();if(tk)localStorage.setItem("gh_token",tk);GH.owner=el("s_owner").value.trim();GH.repo=el("s_repo").value.trim();GH.branch=el("s_branch").value.trim()||"main";el("s_msg").textContent="Guardado.";toast("Ajustes guardados.")}catch(e){el("s_msg").textContent="No se pudo guardar."}};
   (function(){const d=el("s_del");if(d)d.onclick=()=>{try{localStorage.removeItem("gh_token")}catch(e){}toast("Token borrado.");openSettings()}})();
   el("s_pub").onclick=publishAll;
+  el("s_meta").onclick=publishMeta;
+  el("s_share").onclick=shareApp;
   (function(){const st=el("syncState");if(!st)return;
     st.innerHTML=syncOn()?'<b style="color:#2E8B7B">Sincronización activa</b> · tus portadas y correcciones se publican en GitHub.'
       :'<b style="color:#C0642F">Sin sincronizar.</b> Las portadas que tomes quedan solo en este teléfono y se pierden si borras la app. Pon el token abajo y toca “Publicar todo ahora”.'})();
@@ -1198,7 +1205,8 @@ function redSelect(i){RED.sel=i;const n=RED.nodes[i];if(!n){el("redInfo").innerH
     el("redInfo").innerHTML='<div class="rcard"><h4 style="color:'+n.col+'">'+esc(n.id)+'</h4>'+
       '<div class="rmeta">'+ids.length+' libro(s)'+(n.ctry?' · '+esc(n.ctry):'')+' · '+nb.length+' conectados</div>'+
       '<div class="chipline">'+chips+'</div>'+
-      '<button class="btn" data-rauthor="'+esc(n.id)+'">Ver su perfil y sus libros</button></div>'}
+      '<button class="btn" data-rauthor="'+esc(n.id)+'">Ver su perfil</button>'+
+      '<div style="margin-top:10px">'+ids.slice(0,10).map(i2=>'<div class="ctrrow" data-rbook="'+i2+'"><span class="cn">'+esc(BOOKS[i2].t)+'</span><span class="cc">'+esc(BOOKS[i2].c)+'</span></div>').join("")+'</div></div>'}
   else{const hits=BOOKS.filter(b=>norm(bookText(b)).includes(n.id));
     const auth={};hits.forEach(b=>splitAuthors(b.a).forEach(a=>auth[a]=(auth[a]||0)+1));
     const tops=Object.keys(auth).sort((a,b)=>auth[b]-auth[a]).slice(0,6);
@@ -1206,7 +1214,8 @@ function redSelect(i){RED.sel=i;const n=RED.nodes[i];if(!n){el("redInfo").innerH
       '<div class="rmeta">En '+hits.length+' libros · '+nb.length+' palabras conectadas · sobre todo en <b>'+esc(n.cat||"—")+'</b></div>'+
       '<div class="chipline">'+chips+'</div>'+
       (tops.length?'<div class="chipline">'+tops.map(a=>'<span class="rchip" data-rauthor2="'+esc(a)+'">'+esc(a)+' · '+auth[a]+'</span>').join("")+'</div>':'')+
-      '<button class="btn" data-rsearch="'+esc(n.id)+'">Ver los '+hits.length+' libros</button></div>'}}
+      '<button class="btn" data-rsearch="'+esc(n.id)+'">Ver los '+hits.length+' libros</button>'+
+      '<div style="margin-top:10px">'+hits.slice(0,8).map(x=>'<div class="ctrrow" data-rbook="'+x.i+'"><span class="cn">'+esc(x.t)+'</span><span class="cc">'+esc(splitAuthors(x.a)[0]||"—")+'</span></div>').join("")+'</div></div>'}}
 (function(){const cv=el("redCv");if(!cv)return;
   let moved=false,sx0=0,sy0=0;
   const down=ev=>{const p=redPos(ev);RED.last=p;sx0=p.x;sy0=p.y;moved=false;
@@ -1230,6 +1239,7 @@ function redSelect(i){RED.sel=i;const n=RED.nodes[i];if(!n){el("redInfo").innerH
     const c=e.target.closest("[data-rnode]");if(c){const i=RED.nodes.findIndex(n=>n.id===c.dataset.rnode);if(i>=0)redSelect(i);return}
     const a=e.target.closest("[data-rauthor]");if(a){openAuthor(a.dataset.rauthor);return}
     const a2=e.target.closest("[data-rauthor2]");if(a2){openAuthor(a2.dataset.rauthor2);return}
+    const rb=e.target.closest("[data-rbook]");if(rb){openDetail(+rb.dataset.rbook);return}
     const sq=e.target.closest("[data-rsearch]");if(sq){const q=sq.dataset.rsearch;
       state.q=q;const qi=el("q");if(qi)qi.value=q;state.cat="";state.author="";state.ed="";state.dec="";
       const cl=el("clear");if(cl)cl.classList.add("show");render();setView("explorar")}})})();
@@ -1252,7 +1262,7 @@ async function diagnose(){const out=[];
   catch(e){out.push("no se pudo revisar el service worker")}
   out.push(PBASE===null?"fotos: no encontradas todavía":"fotos: encontradas en “"+(PBASE||"raíz")+"”");
   return out}
-applyMetaOver();rebuildUI();
+applyMetaOver();rebuildUI();applyReadOnly();
 
 
 /* ===== estantes: foto propia y nuevos ===== */
@@ -1391,36 +1401,79 @@ function showCountry(k,st){st=st||countryStats();
   const as=(st[k]||[]).slice().sort((a,b)=>AUTH[b].length-AUTH[a].length);
   el("ctrList").innerHTML='<div class="ctrrow" style="background:var(--ink);color:#fff;border-color:var(--ink)"><span class="cn">'+esc(k)+'</span><span class="cc" style="color:#B9C2D6">'+as.length+' autores</span></div>'+
     as.map(a=>'<div class="ctrrow" data-cauth="'+esc(a)+'"><span class="cn">'+esc(a)+'</span><span class="cc">'+AUTH[a].length+' libro(s)</span></div>').join("")}
-var WORLD={sel:null,pts:[]};
+var WORLD={sel:null,pts:[],z:1,ox:0,oy:0,drag:null,pinch:null};
+const CONT=[
+ [[-168,65],[-150,71],[-125,70],[-95,73],[-80,68],[-60,60],[-55,50],[-65,45],[-70,42],[-75,35],[-81,25],[-97,18],[-105,20],[-115,30],[-125,40],[-130,50],[-140,60]],
+ [[-45,60],[-20,70],[-20,82],[-60,82],[-70,75],[-55,65]],
+ [[-81,0],[-75,10],[-60,12],[-50,5],[-35,-5],[-38,-20],[-48,-25],[-58,-38],[-65,-45],[-70,-53],[-75,-45],[-72,-30],[-70,-18],[-80,-5]],
+ [[-10,36],[-9,43],[-2,48],[2,51],[8,54],[12,58],[24,60],[30,60],[32,52],[28,45],[20,40],[10,38],[0,36]],
+ [[-17,15],[-16,28],[0,36],[10,37],[25,32],[35,30],[43,12],[51,12],[42,-3],[40,-25],[28,-34],[18,-34],[12,-18],[8,4],[-8,5]],
+ [[32,52],[60,70],[100,75],[130,70],[142,55],[140,45],[130,35],[122,25],[105,10],[95,5],[80,8],[70,20],[60,25],[45,15],[35,30],[30,45]],
+ [[113,-22],[130,-12],[142,-11],[150,-20],[153,-28],[145,-38],[135,-35],[120,-34]]
+];
+function w2s(lon,lat,w,h){return{x:(lon+180)/360*w*WORLD.z+WORLD.ox,y:(90-lat)/180*h*WORLD.z+WORLD.oy}}
 function drawWorld(st,keys){const cv=el("worldCv");if(!cv)return;
-  const dpr=Math.min(2,window.devicePixelRatio||1);const w=cv.parentNode.getBoundingClientRect().width||320;const h=230;
+  const dpr=Math.min(2,window.devicePixelRatio||1);const w=cv.parentNode.getBoundingClientRect().width||320;const h=260;
   cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+"px";
   const c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);
-  c.fillStyle="#F4F2EC";c.fillRect(0,0,w,h);
-  c.strokeStyle="rgba(23,34,59,.08)";c.lineWidth=1;
-  for(let lon=-180;lon<=180;lon+=30){const x=(lon+180)/360*w;c.beginPath();c.moveTo(x,0);c.lineTo(x,h);c.stroke()}
-  for(let lat=-60;lat<=80;lat+=30){const y=(90-lat)/180*h;c.beginPath();c.moveTo(0,y);c.lineTo(w,y);c.stroke()}
-  c.strokeStyle="rgba(23,34,59,.16)";c.beginPath();const eq=(90-0)/180*h;c.moveTo(0,eq);c.lineTo(w,eq);c.stroke();
+  c.fillStyle="#EAF0F4";c.fillRect(0,0,w,h);
+  c.strokeStyle="rgba(23,34,59,.05)";c.lineWidth=1;
+  for(let lon=-180;lon<=180;lon+=30){const p=w2s(lon,90,w,h),q=w2s(lon,-90,w,h);c.beginPath();c.moveTo(p.x,p.y);c.lineTo(q.x,q.y);c.stroke()}
+  for(let lat=-60;lat<=60;lat+=30){const p=w2s(-180,lat,w,h),q=w2s(180,lat,w,h);c.beginPath();c.moveTo(p.x,p.y);c.lineTo(q.x,q.y);c.stroke()}
+  CONT.forEach(poly=>{c.beginPath();poly.forEach((pt,k)=>{const p=w2s(pt[0],pt[1],w,h);k?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y)});c.closePath();
+    c.fillStyle="#DFE7DC";c.fill();c.strokeStyle="rgba(23,34,59,.18)";c.lineWidth=1;c.stroke()});
   const max=keys.length?st[keys[0]].length:1;WORLD.pts=[];
   keys.forEach(k=>{const co=COORDS[k];if(!co)return;
-    const x=(co[1]+180)/360*w,y=(90-co[0])/180*h;
-    const r=Math.max(4,Math.min(20,4+Math.sqrt(st[k].length/max)*15));
-    WORLD.pts.push({k:k,x:x,y:y,r:r});
+    const p=w2s(co[1],co[0],w,h);
+    const r=(Math.max(4,Math.min(18,4+Math.sqrt(st[k].length/max)*13)))*Math.min(2,Math.sqrt(WORLD.z));
+    WORLD.pts.push({k:k,x:p.x,y:p.y,r:r});
     const on=!WORLD.sel||WORLD.sel===k;
-    c.beginPath();c.arc(x,y,r,0,6.2832);c.fillStyle=on?"rgba(185,119,42,.55)":"rgba(120,128,145,.2)";c.fill();
-    c.beginPath();c.arc(x,y,r,0,6.2832);c.strokeStyle=on?"#B9772A":"rgba(120,128,145,.3)";c.lineWidth=1.4;c.stroke();
-    if(st[k].length>=3||WORLD.sel===k){c.fillStyle="rgba(23,34,59,.8)";c.font="600 10px Inter, sans-serif";c.textAlign="center";
-      c.fillText(k+" ("+st[k].length+")",x,y-r-4)}})}
+    c.beginPath();c.arc(p.x,p.y,r,0,6.2832);c.fillStyle=on?"rgba(185,119,42,.6)":"rgba(120,128,145,.22)";c.fill();
+    c.beginPath();c.arc(p.x,p.y,r,0,6.2832);c.strokeStyle=on?"#8A5A1E":"rgba(120,128,145,.35)";c.lineWidth=1.5;c.stroke();
+    if(st[k].length>=2||WORLD.sel===k||WORLD.z>1.6){c.fillStyle="rgba(23,34,59,.85)";
+      c.font="600 "+Math.round(9+Math.min(4,WORLD.z))+"px Inter, sans-serif";c.textAlign="center";
+      c.fillText(k+" ("+st[k].length+")",p.x,p.y-r-4)}});
+  c.fillStyle="rgba(23,34,59,.35)";c.font="10px Inter, sans-serif";c.textAlign="left";
+  c.fillText("pellizca para acercar · arrastra para mover · doble toque = reiniciar",8,h-8)}
+function worldFocus(k){const cv=el("worldCv");if(!cv||!COORDS[k])return;
+  const w=cv.parentNode.getBoundingClientRect().width||320,h=260;
+  WORLD.z=2.6;WORLD.ox=0;WORLD.oy=0;
+  const p=w2s(COORDS[k][1],COORDS[k][0],w,h);
+  WORLD.ox=w/2-p.x;WORLD.oy=h/2-p.y;WORLD.sel=k;renderCountries()}
+(function(){const cv=el("worldCv");if(!cv)return;
+  const pos=ev=>{const r=cv.getBoundingClientRect();const t=ev.touches&&ev.touches[0]?ev.touches[0]:ev;
+    return{x:t.clientX-r.left,y:t.clientY-r.top}};
+  const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+  let start=null,moved=false;
+  const down=ev=>{if(ev.touches&&ev.touches.length===2){WORLD.pinch={d:dist(ev.touches),z:WORLD.z};return}
+    start=pos(ev);WORLD.drag={ox:WORLD.ox,oy:WORLD.oy,x:start.x,y:start.y};moved=false};
+  const move=ev=>{if(ev.touches&&ev.touches.length===2&&WORLD.pinch){
+      const k=dist(ev.touches)/(WORLD.pinch.d||1);WORLD.z=Math.max(1,Math.min(6,WORLD.pinch.z*k));renderCountries();ev.preventDefault();return}
+    if(!WORLD.drag)return;const p=pos(ev);
+    WORLD.ox=WORLD.drag.ox+(p.x-WORLD.drag.x);WORLD.oy=WORLD.drag.oy+(p.y-WORLD.drag.y);
+    if(Math.abs(p.x-start.x)+Math.abs(p.y-start.y)>6)moved=true;
+    renderCountries();ev.preventDefault()};
+  const up=ev=>{WORLD.pinch=null;
+    if(WORLD.drag&&!moved&&start){let hit=null;WORLD.pts.forEach(p=>{if((start.x-p.x)**2+(start.y-p.y)**2<=(p.r+10)**2)hit=p.k});
+      WORLD.sel=hit;const s2=el("ctrSel");if(s2)s2.value=hit||"";renderCountries()}
+    WORLD.drag=null};
+  cv.addEventListener("mousedown",down);cv.addEventListener("touchstart",down,{passive:false});
+  window.addEventListener("mousemove",move);cv.addEventListener("touchmove",move,{passive:false});
+  window.addEventListener("mouseup",up);cv.addEventListener("touchend",up);
+  cv.addEventListener("wheel",ev=>{WORLD.z=Math.max(1,Math.min(6,WORLD.z*(ev.deltaY<0?1.15:0.87)));renderCountries();ev.preventDefault()},{passive:false});
+  cv.addEventListener("dblclick",()=>{WORLD.z=1;WORLD.ox=0;WORLD.oy=0;renderCountries()});
+})();
 (function(){const b=el("ctrBtn");if(b)b.onclick=loadCountries;
   const sel=el("ctrSel");if(sel)sel.addEventListener("change",()=>{WORLD.sel=sel.value||null;renderCountries()});
-  const sa=el("ctrAuth");if(sa)sa.addEventListener("change",()=>{if(sa.value)openAuthor(sa.value)});
+  const sa=el("ctrAuth");if(sa)sa.addEventListener("change",()=>{if(!sa.value)return;
+    const k=authorCountry(sa.value);if(k)worldFocus(k);openAuthor(sa.value)});
   const cv=el("worldCv");if(cv)cv.addEventListener("click",ev=>{const r=cv.getBoundingClientRect();
     const x=ev.clientX-r.left,y=ev.clientY-r.top;
     let hit=null;WORLD.pts.forEach(p=>{if((x-p.x)**2+(y-p.y)**2<=(p.r+8)**2)hit=p.k});
     WORLD.sel=hit;const s2=el("ctrSel");if(s2)s2.value=hit||"";renderCountries()});
   const lst=el("ctrList");if(lst)lst.addEventListener("click",e=>{
     const c=e.target.closest("[data-ctr]");if(c){WORLD.sel=c.dataset.ctr;el("ctrSel").value=c.dataset.ctr;renderCountries();return}
-    const a=e.target.closest("[data-cauth]");if(a)openAuthor(a.dataset.cauth)});})();
+    const a=e.target.closest("[data-cauth]");if(a){const k=authorCountry(a.dataset.cauth);if(k)worldFocus(k);openAuthor(a.dataset.cauth)}});})();
 /* país editable desde el perfil del autor */
 (function(){const _oa=openAuthor;
   window.openAuthor=function(name){_oa(name);
@@ -1568,6 +1621,59 @@ function redReset(){RED.zoom=1;RED.rx=-0.25;RED.ry=0.5;RED.sel=null;RED.q="";
   const w=el("rWords"),a=el("rAuth");
   const off=()=>c.classList.remove("on");
   if(w)w.addEventListener("click",off);if(a)a.addEventListener("click",off)})();
+
+
+/* ===== meta.json: publicar y cargar sinopsis/portadas/biografías para todos ===== */
+async function publishMeta(){if(!syncOn()){alert("Configura primero el token de GitHub.");return}
+  const btn=el("s_meta");if(btn){btn.disabled=true;btn.textContent="Publicando datos…"}
+  const gb={},wk={};
+  BOOKS.forEach(b=>{const c=CACHE["gb:"+b.i];if(!c)return;
+    const o={};if(c.cover)o.c=c.cover;if(c.synopsis)o.s=c.synopsis;if(c.year)o.y=c.year;
+    if(c.pages)o.p=c.pages;if(c.lang)o.l=c.lang;if(c.cats)o.k=c.cats;if(c.isbn)o.i=c.isbn;
+    if(Object.keys(o).length)gb[b.id]=o});
+  Object.keys(CACHE).forEach(k=>{if(k.indexOf("wk:")!==0)return;const v=CACHE[k];if(!v||!v.bio)return;
+    wk[k.slice(3)]={b:v.bio,p:v.photo||"",l:v.link||""}});
+  const payload={gb:gb,wk:wk,ts:Date.now()};
+  const api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/meta.json';
+  try{let sha=null;const r=await fetch(api+'?ref='+GH.branch,{headers:{Authorization:'Bearer '+ghToken()}});
+    if(r.ok){const j=await r.json();sha=j.sha}
+    const body={message:'Datos de libros ('+Object.keys(gb).length+' libros, '+Object.keys(wk).length+' autores)',
+      content:btoa(unescape(encodeURIComponent(JSON.stringify(payload)))),branch:GH.branch};
+    if(sha)body.sha=sha;
+    const put=await fetch(api,{method:'PUT',headers:{Authorization:'Bearer '+ghToken(),'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(put.ok)toast("Publicado: "+Object.keys(gb).length+" libros y "+Object.keys(wk).length+" biografías, visibles para todos.");
+    else{const e=await put.json().catch(()=>({}));toast("GitHub: "+(e.message||put.status))}}
+  catch(e){toast("No se pudo publicar.")}
+  if(btn){btn.disabled=false;btn.textContent="Publicar sinopsis y portadas"}}
+function mergeMeta(j){if(!j)return 0;let n=0;
+  if(j.gb){const byId={};BOOKS.forEach(b=>byId[b.id]=b);
+    Object.keys(j.gb).forEach(id=>{const b=byId[id];if(!b)return;const o=j.gb[id];
+      const cur=CACHE["gb:"+b.i]||{};
+      if(!cur.synopsis&&o.s){cur.synopsis=o.s;n++}
+      if(!cur.cover&&o.c)cur.cover=o.c;
+      if(!cur.year&&o.y)cur.year=o.y;
+      if(!cur.pages&&o.p)cur.pages=o.p;
+      if(!cur.lang&&o.l)cur.lang=o.l;
+      if(!cur.cats&&o.k)cur.cats=o.k;
+      if(!cur.isbn&&o.i)cur.isbn=o.i;
+      cur._done=true;CACHE["gb:"+b.i]=cur})}
+  if(j.wk){Object.keys(j.wk).forEach(a=>{if(CACHE["wk:"+a]&&CACHE["wk:"+a].bio)return;
+    const o=j.wk[a];CACHE["wk:"+a]={bio:o.b,photo:o.p||"",link:o.l||"",_done:true};n++})}
+  saveCache();return n}
+(function(){if(!GH.owner||!GH.repo)return;
+  fetch('https://raw.githubusercontent.com/'+GH.owner+'/'+GH.repo+'/'+GH.branch+'/meta.json?_='+Date.now())
+    .then(r=>r.ok?r.json():null).then(j=>{const n=mergeMeta(j);if(n){render();if(state.view==="metricas"){renderMetrics();renderYears();renderCountries()}}})
+    .catch(()=>{})})();
+/* compartir */
+async function shareApp(){const url=location.href.split("?")[0];
+  const text="Biblioteca Marca y Mente · Maritza y Javier\n"+url;
+  try{if(navigator.share){await navigator.share({title:"Biblioteca Marca y Mente",text:text,url:url});return}}catch(e){if(e&&e.name==="AbortError")return}
+  try{await navigator.clipboard.writeText(url);alert("Enlace copiado:\n"+url)}catch(e){alert(url)}}
+/* modo solo lectura cuando no hay token */
+function readOnly(){try{if(localStorage.getItem("allow_edit")==="1")return false}catch(e){}
+  return !syncOn()}
+function applyReadOnly(){const ro=readOnly();
+  document.body.classList.toggle("ro",ro)}
 
 </script>
 </body>
