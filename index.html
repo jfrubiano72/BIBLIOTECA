@@ -326,6 +326,7 @@ body.ro #newShelfBtn,body.ro #shelfNewPhoto,body.ro [data-act="ai"],body.ro [dat
   <footer>
     <img id="footSeal" class="footseal" src="sello.png" alt="Sello de la Biblioteca Marca y Mente">
     <div>Marca y Mente · catálogo generado el 24/07/2026 · 315 libros</div>
+    <div id="verLine" style="margin-top:4px;font-size:11px;color:#B4AEA1">versión 2026.07.24-03:29 (hora Colombia)</div>
   </footer>
 </main>
 
@@ -791,7 +792,7 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
       '<p class="src"><a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener"><b>Obtener una clave →</b></a> · Modelo: <input id="s_aimodel" class="in" style="display:inline-block;width:auto;padding:4px 8px;font-size:13px" value="'+esc(aiModel())+'"></p></div>'+
     '<div class="dbtns"><button class="btn" id="s_aisave">Guardar clave</button><button class="btn ghost" id="s_aitest">Probar IA</button></div><p class="src" id="aiMsg"></p></section>'+
   '<section><h3>Aplicación</h3>'+
-    '<p class="src">Versión instalada: <b>2026.07.24-0746</b></p>'+
+    '<p class="src">Versión instalada: <b>2026.07.24-03:29</b></p>'+
     '<p class="src" id="syncState"></p><div class="dbtns"><button class="btn" id="s_pub">Publicar todo ahora</button><button class="btn ghost" id="s_meta">Publicar sinopsis y portadas</button><button class="btn ghost" id="s_share">Compartir la biblioteca</button><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button></div><div class="src" id="diagOut"></div>'+
     '<p class="src">La app se actualiza sola al abrirla con conexión. Si algo no se ve nuevo, toca “Buscar actualizaciones”.</p></section>';
   openModal2();
@@ -1242,6 +1243,7 @@ function drawRed(){const c=RED.ctx;if(!c)return;const N=RED.nodes;
   const order=N.map((n,i)=>i).sort((a,b)=>P[b].z-P[a].z);
   order.forEach(i=>{const n=N[i],p=P[i];
     if(RED.iso&&sel>=0&&i!==sel&&!nb.has(i))return;
+    if(i===sel){c.beginPath();c.arc(p.sx,p.sy,Math.max(3,n.r*p.s)+11,0,6.2832);c.strokeStyle="#B9772A";c.lineWidth=2;c.stroke()}
     const match=qn&&norm(n.label).indexOf(qn)>=0;
     const on=sel<0||i===sel||nb.has(i)||match;
     const r=Math.max(2.5,n.r*p.s);
@@ -1267,13 +1269,15 @@ function startRed(){const cv=el("redCv");if(!cv)return;RED.cv=cv;sizeRed();fillR
   if(RED.mode!=="authors"&&syn<30)el("redInfo").innerHTML='<div class="rcard">El mapa mejora mucho con las sinopsis: ve a <b>Métricas → Cargar portadas y datos</b>. Ahora mismo hay <b>'+syn+'</b> sinopsis guardadas.</div>';
   if(!RED.raf)loopRed()}
 function stopRed(){if(RED.raf){cancelAnimationFrame(RED.raf);RED.raf=null}}
-function hitRed(x,y){const P=RED.nodes.map(proj);let best=-1,bd=1e9;
-  RED.nodes.forEach((n,i)=>{const p=P[i],d=(x-p.sx)**2+(y-p.sy)**2,rr=(Math.max(3,n.r*p.s)+12)**2;
-    if(d<rr&&d<bd){bd=d;best=i}});return best}
+function hitRed(x,y){let best=-1,bd=1e9;
+  for(let i=0;i<RED.nodes.length;i++){const n=RED.nodes[i];const p=proj(n);
+    const d=(x-p.sx)*(x-p.sx)+(y-p.sy)*(y-p.sy);const rr=Math.max(4,n.r*p.s)+18;
+    if(d<rr*rr&&d<bd){bd=d;best=i}}
+  return best}
 function redPos(ev){const r=RED.cv.getBoundingClientRect();const t=ev.touches&&ev.touches[0]?ev.touches[0]:ev;
   return{x:t.clientX-r.left,y:t.clientY-r.top}}
 function redSelect(i){RED.sel=i;const n=RED.nodes[i];if(!n){el("redInfo").innerHTML="";return}
-  RED.paused=true;RED.vrx=0;RED.vry=0;const pb=el("redPause");if(pb)pb.textContent="▶ Reanudar movimiento";
+  RED.vry=0.0018;
   const nb=[];RED.links.forEach(l=>{if(l[0]===i)nb.push(RED.nodes[l[1]]);if(l[1]===i)nb.push(RED.nodes[l[0]])});
   nb.sort((a,b)=>b.w-a.w);
   const chips=nb.slice(0,12).map(x=>'<span class="rchip" style="border-color:'+x.col+'55" data-rnode="'+esc(x.id)+'">'+esc(x.id)+'</span>').join("");
@@ -1895,6 +1899,22 @@ function showComp(k){const m=compStats();const arr=m[k]||[];
     if(!RED.paused){RED.vry=0.0035}};
   const iso=el("redIso");if(iso)iso.onclick=()=>{RED.iso=!RED.iso;
     iso.textContent=RED.iso?"◉ Ver todo el mapa":"◎ Ver solo lo conectado"};})();
+
+
+/* ===== control de versión visible y fiable ===== */
+const APP_VER="2026.07.24-03:29";
+async function checkVersion(silent){
+  try{const r=await fetch("version.json?_="+Date.now(),{cache:"no-store"});
+    if(!r.ok)return null;const j=await r.json();
+    if(j&&j.v&&j.v!==APP_VER){showUpdateBar();return j.v}
+    return j&&j.v||null}catch(e){return null}}
+(function(){checkVersion(true);
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkVersion(true)});
+  setInterval(()=>checkVersion(true),15*60*1000);
+  const v=el("verLine");if(v)v.style.cursor="pointer";
+  if(v)v.onclick=async()=>{v.textContent="comprobando…";
+    const nv=await checkVersion();
+    v.textContent=nv&&nv!==APP_VER?("hay una versión nueva: "+nv+" · toca Actualizar"):("versión "+APP_VER+" · es la más reciente")}})();
 
 </script>
 </body>

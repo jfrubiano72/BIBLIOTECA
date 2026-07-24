@@ -1,5 +1,5 @@
 /* Service Worker · Biblioteca Marca y Mente */
-const VERSION = "2026.07.24-0330";
+const VERSION = "2026.07.24-03:29";
 const CACHE = "mym-" + VERSION;
 const ASSETS = ["./", "index.html", "manifest.json", "icon-180.png", "icon-512.png", "sello.png"];
 
