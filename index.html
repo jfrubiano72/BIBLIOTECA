@@ -265,6 +265,19 @@ body.ro #newShelfBtn,body.ro #shelfNewPhoto,body.ro [data-act="ai"],body.ro [dat
       <div class="segw"><button class="seg on" id="rWords">Palabras</button><button class="seg" id="rAuth">Autores</button><button class="seg" id="rCtry">Países</button></div>
     </div>
     <input id="redQ" class="ainput" type="search" placeholder="Escribe una palabra (ej: cerebro, marca, atención)">
+    <div class="row" style="gap:8px;margin-bottom:10px">
+      <select id="redSrc" class="catsel" style="color:var(--ink);background:#fff;border-color:var(--line);margin:0" aria-label="Fuente">
+        <option value="con">Conceptos clave de las sinopsis</option>
+        <option value="syn">Todas las palabras de la sinopsis</option>
+        <option value="tit">Palabras de los títulos</option>
+        <option value="all">Todo combinado</option>
+      </select>
+      <select id="redMax" class="catsel" style="color:var(--ink);background:#fff;border-color:var(--line);margin:0;max-width:130px" aria-label="Cantidad">
+        <option value="80">80 puntos</option>
+        <option value="150" selected>150 puntos</option>
+        <option value="250">250 puntos</option>
+      </select>
+    </div>
     <select id="redAuthor" class="catsel" style="color:var(--ink);background:#fff;border-color:var(--line);margin-bottom:10px" aria-label="Elegir autor"></select>
     <div class="redwrap"><canvas id="redCv"></canvas></div>
     <div class="dbtns" style="margin-top:10px"><button class="btn ghost" id="redReset">↺ Volver al mapa general</button></div>
@@ -771,7 +784,7 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
       '<p class="src"><a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener"><b>Obtener una clave →</b></a> · Modelo: <input id="s_aimodel" class="in" style="display:inline-block;width:auto;padding:4px 8px;font-size:13px" value="'+esc(aiModel())+'"></p></div>'+
     '<div class="dbtns"><button class="btn" id="s_aisave">Guardar clave</button><button class="btn ghost" id="s_aitest">Probar IA</button></div><p class="src" id="aiMsg"></p></section>'+
   '<section><h3>Aplicación</h3>'+
-    '<p class="src">Versión instalada: <b>2026.07.24-0644</b></p>'+
+    '<p class="src">Versión instalada: <b>2026.07.24-0708</b></p>'+
     '<p class="src" id="syncState"></p><div class="dbtns"><button class="btn" id="s_pub">Publicar todo ahora</button><button class="btn ghost" id="s_meta">Publicar sinopsis y portadas</button><button class="btn ghost" id="s_share">Compartir la biblioteca</button><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button></div><div class="src" id="diagOut"></div>'+
     '<p class="src">La app se actualiza sola al abrirla con conexión. Si algo no se ve nuevo, toca “Buscar actualizaciones”.</p></section>';
   openModal2();
@@ -1102,9 +1115,20 @@ const STOP=new Set(("de la el los las un una unos unas y o u que en para con por
 function tokens(txt){return norm(txt||"").replace(/[^a-z0-9ñ\s]/g," ").split(/\s+/).filter(w=>w.length>3&&!STOP.has(w))}
 const PALETTE=["#B9772A","#3A6EA5","#2E8B7B","#C24A6B","#7A5AA6","#B2842B","#2C7C91","#C0642F","#4C7A34","#6C63B5"];
 var RED={nodes:[],links:[],raf:null,sel:null,drag:null,mode:"words",cv:null,ctx:null,W:0,H:0,dpr:1,
-  rx:-0.25,ry:0.5,vrx:0,vry:0.0035,last:null,q:"",zoom:1,pinch:null};
-function bookText(b){const m=metaOver()[b.id]||{},c=CACHE["gb:"+b.i]||{};
-  return b.t+" "+b.c+" "+(c.cats?c.cats.join(" "):"")+" "+((m.syn||c.synopsis||"").slice(0,700))}
+  rx:-0.25,ry:0.5,vrx:0,vry:0.0035,last:null,q:"",zoom:1,pinch:null,src:"con",max:150};
+function synOf(b){const m=metaOver()[b.id]||{},c=CACHE["gb:"+b.i]||{};return m.syn||c.synopsis||""}
+function conceptsOf(b){const t=synOf(b);
+  const m=t.match(/Conceptos?\s+clave\s*:\s*([\s\S]*)$/i);if(!m)return[];
+  return m[1].replace(/\.$/,"").split(/[,;·]|\sy\s/).map(x=>norm(x).replace(/[^a-z0-9ñ ]/g," ").replace(/\s+/g," ").trim())
+    .filter(x=>x.length>3&&x.length<34&&!STOP.has(x))}
+function synBody(b){const t=synOf(b);return t.replace(/Conceptos?\s+clave\s*:[\s\S]*$/i,"")}
+function bookText(b){const c=CACHE["gb:"+b.i]||{};
+  return b.t+" "+b.c+" "+(c.cats?c.cats.join(" "):"")+" "+synOf(b)}
+function unitsOf(b,src){
+  if(src==="con"){const c=conceptsOf(b);return c.length?c:tokens(b.c)}
+  if(src==="syn"){return tokens(synBody(b))}
+  if(src==="tit"){return tokens(b.t)}
+  return conceptsOf(b).concat(tokens(b.t)).concat(tokens(synBody(b)))}
 function buildRed(mode){
   const nodes=[],links=[],idx={};
   if(mode==="country"){
@@ -1124,10 +1148,12 @@ function buildRed(mode){
     Object.keys(byCat).forEach(c=>{const arr=[...byCat[c]];
       for(let i=0;i<arr.length;i++)for(let j=i+1;j<arr.length&&j<i+7;j++)links.push([idx[arr[i]],idx[arr[j]],1])});
   }else{
+    const src=RED.src||"con";const MAXN=RED.max||150;
     const freq={},docs=[],catOf={};
-    BOOKS.forEach(b=>{const ws=new Set(tokens(bookText(b)));docs.push({b,ws});
+    BOOKS.forEach(b=>{const ws=new Set(unitsOf(b,src));docs.push({b,ws});
       ws.forEach(w=>{freq[w]=(freq[w]||0)+1;(catOf[w]=catOf[w]||{})[b.c]=(catOf[w][b.c]||0)+1})});
-    const top=Object.keys(freq).filter(w=>freq[w]>=3).sort((a,b)=>freq[b]-freq[a]).slice(0,70);
+    const minF=src==="tit"?2:2;
+    const top=Object.keys(freq).filter(w=>freq[w]>=minF).sort((a,b)=>freq[b]-freq[a]).slice(0,MAXN);
     const T=new Set(top);
     top.forEach(w=>{idx[w]=nodes.length;
       const cs=catOf[w]||{};const domin=Object.keys(cs).sort((a,b)=>cs[b]-cs[a])[0]||"";
@@ -1135,7 +1161,8 @@ function buildRed(mode){
     const pair={};
     docs.forEach(d=>{const ws=[...d.ws].filter(w=>T.has(w));
       for(let i=0;i<ws.length;i++)for(let j=i+1;j<ws.length;j++){const k=ws[i]<ws[j]?ws[i]+"|"+ws[j]:ws[j]+"|"+ws[i];pair[k]=(pair[k]||0)+1}});
-    Object.keys(pair).filter(k=>pair[k]>=2).sort((a,b)=>pair[b]-pair[a]).slice(0,220)
+    const minP=(src==="con"||src==="tit")?1:2;
+    Object.keys(pair).filter(k=>pair[k]>=minP).sort((a,b)=>pair[b]-pair[a]).slice(0,Math.round(MAXN*3.2))
       .forEach(k=>{const[p,q]=k.split("|");links.push([idx[p],idx[q],pair[k]])});
   }
   const cats=[...new Set(nodes.map(n=>n.cat))];
@@ -1195,7 +1222,8 @@ function sizeRed(){const cv=RED.cv;if(!cv)return;const r=cv.parentNode.getBoundi
 function startRed(){const cv=el("redCv");if(!cv)return;RED.cv=cv;sizeRed();fillRedAuthors();
   if(!RED.nodes.length||RED._mode!==RED.mode){RED._mode=RED.mode;buildRed(RED.mode)}
   const syn=BOOKS.filter(b=>(metaOver()[b.id]||{}).syn||(CACHE["gb:"+b.i]||{}).synopsis).length;
-  el("redSub").textContent=RED.nodes.length+(RED.mode==="authors"?" autores":(RED.mode==="country"?" países y autores":" palabras"))+" · "+RED.links.length+" conexiones · gira y pellizca";
+  const lbl=RED.mode==="authors"?" autores":(RED.mode==="country"?" países y autores":({con:" conceptos clave",syn:" palabras de sinopsis",tit:" palabras de títulos",all:" términos"}[RED.src||"con"]));
+  el("redSub").textContent=RED.nodes.length+lbl+" · "+RED.links.length+" conexiones · gira y pellizca";
   if(RED.mode==="country"&&RED.nodes.length<2)el("redInfo").innerHTML='<div class="rcard">Primero ve a <b>Métricas → Autores por país → Buscar países de los autores</b>.</div>';
   if(RED.mode!=="authors"&&syn<30)el("redInfo").innerHTML='<div class="rcard">El mapa mejora mucho con las sinopsis: ve a <b>Métricas → Cargar portadas y datos</b>. Ahora mismo hay <b>'+syn+'</b> sinopsis guardadas.</div>';
   if(!RED.raf)loopRed()}
@@ -1219,7 +1247,9 @@ function redSelect(i){RED.sel=i;const n=RED.nodes[i];if(!n){el("redInfo").innerH
       '<div class="chipline">'+chips+'</div>'+
       '<button class="btn" data-rauthor="'+esc(n.id)+'">Ver su perfil</button>'+
       '<div style="margin-top:10px">'+ids.slice(0,10).map(i2=>'<div class="ctrrow" data-rbook="'+i2+'"><span class="cn">'+esc(BOOKS[i2].t)+'</span><span class="cc">'+esc(BOOKS[i2].c)+'</span></div>').join("")+'</div></div>'}
-  else{const hits=BOOKS.filter(b=>norm(bookText(b)).includes(n.id));
+  else{const src=RED.src||"con";
+    const hits=BOOKS.filter(b=>{if(src==="con")return conceptsOf(b).indexOf(n.id)>=0;
+      return norm(bookText(b)).includes(n.id)});
     const auth={};hits.forEach(b=>splitAuthors(b.a).forEach(a=>auth[a]=(auth[a]||0)+1));
     const tops=Object.keys(auth).sort((a,b)=>auth[b]-auth[a]).slice(0,6);
     el("redInfo").innerHTML='<div class="rcard"><h4 style="color:'+n.col+'">'+esc(n.id)+'</h4>'+
@@ -1626,7 +1656,14 @@ function warnDupe(b){const k=normTitle(b.t);
 function redReset(){RED.zoom=1;RED.rx=-0.25;RED.ry=0.5;RED.sel=null;RED.q="";
   const q=el("redQ");if(q)q.value="";const sa=el("redAuthor");if(sa)sa.value="";
   el("redInfo").innerHTML="";RED._mode=null;startRed()}
-(function(){const b=el("redReset");if(b)b.onclick=redReset;})();
+(function(){const b=el("redReset");if(b)b.onclick=redReset;
+  const sc=el("redSrc"),mx=el("redMax");
+  if(sc)sc.addEventListener("change",()=>{RED.src=sc.value;RED._mode=null;el("redInfo").innerHTML="";startRed()});
+  if(mx)mx.addEventListener("change",()=>{RED.max=+mx.value;RED._mode=null;el("redInfo").innerHTML="";startRed()});
+  const sync=()=>{const on=(RED.mode!=="authors"&&RED.mode!=="country");
+    if(sc)sc.parentNode.style.display=on?"flex":"none"};
+  ["rWords","rAuth","rCtry"].forEach(id=>{const e2=el(id);if(e2)e2.addEventListener("click",()=>setTimeout(sync,10))});
+  setTimeout(sync,50);})();
 (function(){const c=el("rCtry");if(!c)return;
   c.onclick=()=>{RED.mode="country";c.classList.add("on");el("rWords").classList.remove("on");el("rAuth").classList.remove("on");
     el("redInfo").innerHTML="";RED._mode=null;startRed()};
