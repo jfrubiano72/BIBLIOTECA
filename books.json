@@ -1,3 +1,32 @@
 {
-  "added": []
+  "added": [],
+  "catOver": {},
+  "ytOver": {},
+  "coverOver": {
+    "MM-044": "https://raw.githubusercontent.com/jfrubiano72/BIBLIOTECA/main/covers/MM-044.jpg"
+  },
+  "yearOver": {},
+  "metaOver": {
+    "MM-161": {
+      "t": "Enterrado en Vida",
+      "a": "Arnold Bennett",
+      "f": 4,
+      "p": 3
+    },
+    "MM-315": {
+      "t": "Agenda",
+      "a": "",
+      "f": 3,
+      "p": 6
+    },
+    "MM-189": {
+      "t": "La señora dalloway",
+      "a": "Virginia Woolf",
+      "f": 2,
+      "p": 3
+    }
+  },
+  "shelfOver": {},
+  "shelfNames": {},
+  "countryOver": {}
 }
