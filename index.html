@@ -355,6 +355,7 @@ body.ro #newShelfBtn,body.ro #shelfNewPhoto,body.ro [data-act="ai"],body.ro [dat
       <p>Trae de Internet (Google Books) las portadas, sinopsis y años de todos los libros y los guarda para que se vean al instante. Tarda un poco y necesita conexión (mejor con la app ya en un enlace web).</p>
       <button class="btn" id="enrichBtn">Cargar portadas y datos</button>
       <button class="btn ghost" id="aiBulk">✨ Generar sinopsis faltantes con IA</button>
+      <button class="btn" id="coverBulk" style="margin-top:8px">🖼 Buscar portadas faltantes</button>
       <p class="src" id="enrStat"></p>
       <div class="prog" id="prog"><div class="pfill" id="pfill"></div></div>
       <div id="mByYear" style="margin-top:14px"></div>
@@ -363,7 +364,7 @@ body.ro #newShelfBtn,body.ro #shelfNewPhoto,body.ro [data-act="ai"],body.ro [dat
   <footer>
     <img id="footSeal" class="footseal" src="sello.png" alt="Sello de la Biblioteca Marca y Mente">
     <div>Marca y Mente · catálogo generado el 24/07/2026 · 315 libros</div>
-    <div id="verLine" style="margin-top:4px;font-size:11px;color:#B4AEA1">versión 2026.07.24-04:15 (hora Colombia)</div>
+    <div id="verLine" style="margin-top:4px;font-size:11px;color:#B4AEA1">versión 2026.07.24-04:23 (hora Colombia)</div>
   </footer>
 </main>
 
@@ -625,6 +626,8 @@ function bioHTML(info,name,retryAct){
   if(info.bio&&isEnglish(info.bio)){const ph=info.photo?'<img class="authpic" src="'+info.photo+'" alt="'+esc(name)+'">':'';
     return ph+esc(info.bio)+'<div class="src" style="color:#8A6414">⚠ Biografía en inglés (viene de Wikipedia en inglés).</div>'+
       '<div class="src"><a class="linkbtn" href="https://es.wikipedia.org/w/index.php?search='+encodeURIComponent(name)+'" target="_blank" rel="noopener">Buscar en español</a></div>'}
+  if(info.bio&&info.mine){const ph=info.photo?'<img class="authpic" src="'+info.photo+'" alt="'+esc(name)+'">':'';
+    return ph+esc(info.bio)+'<div class="src">Biografía escrita por ustedes</div>'}
   if(info.bio){const ph=info.photo?'<img class="authpic" src="'+info.photo+'" alt="'+esc(name)+'">':'';
     return ph+esc(info.bio)+(info.link?' <a class="linkbtn" href="'+info.link+'" target="_blank" rel="noopener">Wikipedia</a>':'')+
       '<div class="src">¿No corresponde a este autor? <a href="https://www.google.com/search?q='+encodeURIComponent(name+' autor libro')+'" target="_blank" rel="noopener">Buscar en Google</a></div>'}
@@ -769,7 +772,7 @@ el("detail").addEventListener("click",async e=>{
   const ct=e.target.closest("[data-cat]");if(ct){state.cat=ct.dataset.cat;state.author="";state.q="";qEl.value="";render();closeDetail();setView("explorar");return}
   const ob=e.target.closest("[data-openbook]");if(ob){openDetail(+ob.dataset.openbook);return}
   const ea=e.target.closest("[data-explore-author]");if(ea){state.author=ea.dataset.exploreAuthor;state.cat="";state.q="";qEl.value="";render();closeDetail();setView("explorar");return}
-  const act=e.target.closest("[data-act]");if(act){const A=act.dataset.act;if(A==="rec")el("recInput").click();else if(A==="share")shareBook(BOOKS[CURRENT]);else if(A==="retry"){delete CACHE["gb:"+BOOKS[CURRENT].id];saveCache();const b=BOOKS[CURRENT];if(el("dsyn"))el("dsyn").innerHTML='<span class="spinner"></span>Reintentando…';lookupBook(b,true).then(info=>{if(el("dsyn"))el("dsyn").innerHTML=info.synopsis?esc(info.synopsis).replace(/\n+/g,"<br><br>"):(info.neterr?'<span class="muted">Sigue sin conexión.</span>':'<span class="muted">Sin sinopsis en línea.</span>');const cv=el("dcover");if(cv&&info.cover){cv.style.background="url('"+info.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}})}else if(A==="retrybio"){const nm=firstAuthor(BOOKS[CURRENT].a);delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"retrybio")})}else if(A==="authbio"){const nm=CUR_AUTHOR;delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"authbio")})}else if(A==="yt"){setYT(BOOKS[CURRENT])}else if(A==="editcat"){editCat(BOOKS[CURRENT])}else if(A==="edityear"){editYear(BOOKS[CURRENT])}else if(A==="editmeta"){editMeta(BOOKS[CURRENT])}else if(A==="delbook"){deleteBook(BOOKS[CURRENT])}else if(A==="coverurl"){coverByURL(BOOKS[CURRENT])}else if(A==="editsyn"){editSyn(BOOKS[CURRENT])}else if(A==="ai"){aiSynopsis(BOOKS[CURRENT])}else if(A==="aibio"){aiBio(firstAuthor(BOOKS[CURRENT].a),BOOKS[CURRENT])}else if(A==="setcover"){coverMenu(BOOKS[CURRENT])}return}
+  const act=e.target.closest("[data-act]");if(act){const A=act.dataset.act;if(A==="rec")el("recInput").click();else if(A==="share")shareBook(BOOKS[CURRENT]);else if(A==="retry"){delete CACHE["gb:"+BOOKS[CURRENT].id];saveCache();const b=BOOKS[CURRENT];if(el("dsyn"))el("dsyn").innerHTML='<span class="spinner"></span>Reintentando…';lookupBook(b,true).then(info=>{if(el("dsyn"))el("dsyn").innerHTML=info.synopsis?esc(info.synopsis).replace(/\n+/g,"<br><br>"):(info.neterr?'<span class="muted">Sigue sin conexión.</span>':'<span class="muted">Sin sinopsis en línea.</span>');const cv=el("dcover");if(cv&&info.cover){cv.style.background="url('"+info.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}})}else if(A==="retrybio"){const nm=firstAuthor(BOOKS[CURRENT].a);delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"retrybio")})}else if(A==="authbio"){const nm=CUR_AUTHOR;delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"authbio")})}else if(A==="yt"){setYT(BOOKS[CURRENT])}else if(A==="editcat"){editCat(BOOKS[CURRENT])}else if(A==="edityear"){editYear(BOOKS[CURRENT])}else if(A==="editmeta"){editMeta(BOOKS[CURRENT])}else if(A==="delbook"){deleteBook(BOOKS[CURRENT])}else if(A==="coverurl"){coverByURL(BOOKS[CURRENT])}else if(A==="editsyn"){editSyn(BOOKS[CURRENT])}else if(A==="ai"){aiSynopsis(BOOKS[CURRENT])}else if(A==="aibio"){aiBio(firstAuthor(BOOKS[CURRENT].a),BOOKS[CURRENT])}else if(A==="editbio"){editBio(CUR_AUTHOR||firstAuthor(BOOKS[CURRENT].a))}else if(A==="setcover"){coverMenu(BOOKS[CURRENT])}return}
   const sh=e.target.closest("[data-share]");if(sh){shareVideo(+sh.dataset.share,BOOKS[CURRENT]);return}
   const dl=e.target.closest("[data-del]");if(dl){if(confirm("¿Eliminar este video?")){await idbDel(+dl.dataset.del);await refreshVidBooks();renderVideos(BOOKS[CURRENT]);render()}return}});
 el("recInput").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f||CURRENT==null)return;
@@ -846,7 +849,7 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
       '<p class="src"><a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener"><b>Obtener una clave →</b></a> · Modelo: <input id="s_aimodel" class="in" style="display:inline-block;width:auto;padding:4px 8px;font-size:13px" value="'+esc(aiModel())+'"></p></div>'+
     '<div class="dbtns"><button class="btn" id="s_aisave">Guardar clave</button><button class="btn ghost" id="s_aitest">Probar IA</button></div><p class="src" id="aiMsg"></p></section>'+
   '<section><h3>Aplicación</h3>'+
-    '<p class="src">Versión instalada: <b>2026.07.24-04:15</b></p>'+
+    '<p class="src">Versión instalada: <b>2026.07.24-04:23</b></p>'+
     '<p class="src" id="syncState"></p><div class="dbtns"><button class="btn" id="s_pub">Publicar todo ahora</button><button class="btn ghost" id="s_meta">Publicar sinopsis y portadas</button><button class="btn ghost" id="s_share">Compartir la biblioteca</button><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button><button class="btn ghost" id="s_reset">Borrar datos descargados</button><button class="btn ghost" id="s_restore">Libros eliminados</button><button class="btn ghost" id="s_ro"></button></div><p class="src">El modo solo lectura oculta los botones de editar: útil si prestas el teléfono o lo muestras en clase.</p><div class="src" id="diagOut"></div>'+
     '<p class="src">La app se actualiza sola al abrirla con conexión. Si algo no se ve nuevo, toca “Buscar actualizaciones”.</p></section>';
   openModal2();
@@ -910,6 +913,8 @@ if(GH.owner&&GH.repo){fetch('https://raw.githubusercontent.com/'+GH.owner+'/'+GH
    if(j.coverOver){try{const cur=coverOverStore();saveCoverOver(Object.assign({},j.coverOver,cur))}catch(e){}}
    if(j.yearOver){try{const cur=yearOver();localStorage.setItem("year_over",JSON.stringify(Object.assign({},j.yearOver,cur)))}catch(e){}}
    if(j.metaOver){try{const cur=metaOver();saveMeta(Object.assign({},j.metaOver,cur));applyMetaOver()}catch(e){}}
+   if(j.bioOver){try{const cur=bioOver();const mg=Object.assign({},j.bioOver,cur);saveBioOver(mg);
+     Object.keys(mg).forEach(n=>{CACHE["wk:"+n]={bio:mg[n],photo:(CACHE["wk:"+n]||{}).photo||"",link:"",_done:true,mine:1}});saveCache()}catch(e){}}
    if(j.deleted&&j.deleted.length){try{const cur=delSet();const ids={};cur.forEach(x=>ids[x.id]=1);
      j.deleted.forEach(x=>{if(!ids[x.id])cur.push(x)});saveDel(cur);applyDeleted()}catch(e){}}
    if(j.shelfOver){try{const cur=shelfOver();localStorage.setItem("shelf_over",JSON.stringify(Object.assign({},j.shelfOver,cur)))}catch(e){}}
@@ -978,7 +983,7 @@ function doCat(b,n){const cur=b.c||"";const nv=(n||"").trim();if(!nv||nv===cur)r
 async function ghSyncAll(){const tk=ghToken();if(!tk||!GH.owner||!GH.repo)return;
   const api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/books.json';
   try{let sha=null;const r=await fetch(api+'?ref='+GH.branch,{headers:{Authorization:'Bearer '+tk}});if(r.ok){const j=await r.json();sha=j.sha}
-    const payload={added:loadAdds(),catOver:catOver(),ytOver:ytOver(),coverOver:coverOverStore(),yearOver:yearOver(),metaOver:metaOver(),deleted:delSet(),shelfOver:shelfOver(),shelfNames:shelfNames(),countryOver:countryOver()};
+    const payload={added:loadAdds(),catOver:catOver(),ytOver:ytOver(),coverOver:coverOverStore(),yearOver:yearOver(),metaOver:metaOver(),deleted:delSet(),bioOver:bioOver(),shelfOver:shelfOver(),shelfNames:shelfNames(),countryOver:countryOver()};
     const body={message:'Actualizar biblioteca',content:btoa(unescape(encodeURIComponent(JSON.stringify(payload,null,2)))),branch:GH.branch};if(sha)body.sha=sha;
     const put=await fetch(api,{method:'PUT',headers:{Authorization:'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(put.ok)toast("Guardado en línea.");else{const e=await put.json().catch(()=>({}));toast("GitHub: "+(e.message||put.status))}}catch(e){toast("Sin conexión con GitHub.")}}
@@ -1843,7 +1848,8 @@ async function publishMeta(){if(!syncOn()){alert("Configura primero el token de 
     if(c.pages)o.p=c.pages;if(c.lang)o.l=c.lang;if(c.cats)o.k=c.cats;if(c.isbn)o.i=c.isbn;
     if(Object.keys(o).length)gb[b.id]=o});
   Object.keys(CACHE).forEach(k=>{if(k.indexOf("wk:")!==0)return;const v=CACHE[k];if(!v||!v.bio)return;
-    wk[k.slice(3)]={b:v.bio,p:v.photo||"",l:v.link||""}});
+    wk[k.slice(3)]={b:v.bio,p:v.photo||"",l:v.link||"",q:v.mine?2:1}});
+  const bo=bioOver();Object.keys(bo).forEach(n=>{wk[n]={b:bo[n],p:"",l:"",q:2}});
   const payload={gb:gb,wk:wk,ts:Date.now()};
   const api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/meta.json';
   try{let sha=null;const r=await fetch(api+'?ref='+GH.branch,{headers:{Authorization:'Bearer '+ghToken()}});
@@ -1879,7 +1885,8 @@ function mergeMeta(j){if(!j)return 0;let n=0;
       if(!cur.cats&&o.k)cur.cats=o.k;
       if(!cur.isbn&&o.i)cur.isbn=o.i;
       cur._done=true;CACHE["gb:"+b.id]=cur})}
-  if(j.wk){Object.keys(j.wk).forEach(a=>{if(CACHE["wk:"+a]&&CACHE["wk:"+a].bio)return;
+  if(j.wk){const mine=bioOver();Object.keys(j.wk).forEach(a=>{if(mine[a])return;
+    if(CACHE["wk:"+a]&&CACHE["wk:"+a].bio&&!(j.wk[a].q===2))return;
     const o=j.wk[a];CACHE["wk:"+a]={bio:o.b,photo:o.p||"",link:o.l||"",_done:true};n++})}
   saveCache();return n}
 (function(){if(!GH.owner||!GH.repo)return;
@@ -1960,10 +1967,11 @@ async function aiBulk(){
       if(m.synAI&&el("dsyn")&&el("dsyn").innerHTML.indexOf("IA")<0)
         el("dsyn").innerHTML+='<div class="src">✨ Redactada por IA · revísala y corrígela si hace falta</div>';
       const bio=el("dbio");
-      if(bio&&b.a&&!readOnly()&&bio.innerHTML.indexOf("data-act=\"aibio\"")<0){
-        const btn=document.createElement("button");btn.className="btn ghost";btn.style.marginTop="10px";
-        btn.setAttribute("data-act","aibio");btn.textContent="✨ Generar biografía con IA";
-        bio.parentNode.appendChild(btn)}},260)}})();
+      if(bio&&b.a&&!readOnly()&&bio.parentNode.querySelector("[data-act='editbio']")===null){
+        const wrap=document.createElement("div");wrap.className="dbtns";wrap.style.marginTop="10px";
+        wrap.innerHTML='<button class="btn ghost" data-act="editbio">\u270E Escribir / corregir biografía</button>'+
+                       '<button class="btn ghost" data-act="aibio">\u2728 Generar con IA</button>';
+        bio.parentNode.appendChild(wrap)}},260)}})();
 
 
 /* ===== completitud del catálogo ===== */
@@ -2009,7 +2017,7 @@ function showComp(k){const m=compStats();const arr=m[k]||[];
 
 
 /* ===== control de versión visible y fiable ===== */
-const APP_VER="2026.07.24-04:15";
+const APP_VER="2026.07.24-04:23";
 async function checkVersion(silent){
   try{const r=await fetch("version.json?_="+Date.now(),{cache:"no-store"});
     if(!r.ok)return null;const j=await r.json();
@@ -2115,6 +2123,57 @@ function restoreModal(){const d=delSet();
   window.addEventListener("mouseup",up);clone.addEventListener("touchend",up);
   clone.addEventListener("wheel",ev=>{RED.zoom=Math.max(0.45,Math.min(3.5,(RED.zoom||1)*(ev.deltaY<0?1.12:0.89)));ev.preventDefault()},{passive:false});
   clone.addEventListener("dblclick",()=>{RED.zoom=1});})();
+
+
+/* ===== biografías escritas a mano ===== */
+function bioOver(){try{return JSON.parse(localStorage.getItem("bio_over")||"{}")}catch(e){return{}}}
+function saveBioOver(o){try{localStorage.setItem("bio_over",JSON.stringify(o))}catch(e){}}
+function editBio(name){if(!name){alert("Este libro no tiene autor asignado.");return}
+  const cur=(bioOver()[name])||((CACHE["wk:"+name]||{}).bio)||"";
+  formModal("Biografía de "+name,[{label:"Biografía",val:cur,type:"area"}],
+    vals=>{const v=(vals[0]||"").trim();const o=bioOver();
+      if(v){o[name]=v;CACHE["wk:"+name]=Object.assign({},CACHE["wk:"+name]||{},{bio:v,_done:true,mine:1})}
+      else{delete o[name];delete CACHE["wk:"+name]}
+      saveBioOver(o);saveCache();
+      if(CUR_AUTHOR===name)openAuthor(name);else if(CURRENT!=null)openDetail(CURRENT);
+      toast("Biografía guardada.");ghSyncAll()},
+    "Si Wikipedia no la tiene o está equivocada, escríbela tú. Se comparte con Maritza y los estudiantes.")}
+(function(){const o=bioOver();Object.keys(o).forEach(n=>{CACHE["wk:"+n]={bio:o[n],photo:(CACHE["wk:"+n]||{}).photo||"",link:"",_done:true,mine:1}});
+  if(Object.keys(o).length)saveCache()})();
+/* ===== búsqueda masiva solo de portadas ===== */
+async function coverOnly(b){const key="gb:"+b.id;const c=CACHE[key]||{};
+  if(c.cover)return true;
+  const a=firstAuthor(b.a);const info={};
+  if(!gbCooling()){
+    for(const q of [ 'intitle:"'+b.t+'"'+(a?'+inauthor:"'+a+'"':''), b.t+" "+(a||"") ]){
+      try{const j=await fetchJSON('https://www.googleapis.com/books/v1/volumes?q='+encodeURIComponent(q)+'&maxResults=5&country=US');
+        const items=j.items||[];
+        for(const it of items){const vi=it.volumeInfo;if(vi&&vi.imageLinks){
+          info.cover=(vi.imageLinks.thumbnail||vi.imageLinks.smallThumbnail||"").replace("http://","https://").replace("&edge=curl","");
+          if(vi.industryIdentifiers){const i13=vi.industryIdentifiers.find(x=>x.type==="ISBN_13"),i10=vi.industryIdentifiers.find(x=>x.type==="ISBN_10");
+            info.isbn=(i13&&i13.identifier)||(i10&&i10.identifier)||""}
+          break}}
+        if(info.cover)break}catch(e){}}}
+  if(!info.cover){try{await olLookup(b,info)}catch(e){}}
+  if(!info.cover&&info.isbn){try{const am=await amazonCover(info.isbn);if(am)info.cover=am}catch(e){}}
+  if(!info.cover&&c.isbn){try{const am=await amazonCover(c.isbn);if(am)info.cover=am}catch(e){}}
+  if(info.cover){CACHE[key]=Object.assign({},c,{cover:info.cover,isbn:info.isbn||c.isbn});saveCache();return true}
+  return false}
+async function coverBulk(){const btn=el("coverBulk");const st=el("enrStat");
+  const pend=BOOKS.filter(b=>!(COVERS[b.id]||COVEROVER[b.id]||(CACHE["gb:"+b.id]||{}).cover||b.cover));
+  if(!pend.length){if(st)st.textContent="Todos los libros ya tienen portada.";return}
+  btn.disabled=true;let ok=0,done=0;const lote=pend.slice(0,60);
+  for(const b of lote){
+    try{if(await coverOnly(b))ok++}catch(e){}
+    done++;btn.textContent="Buscando "+done+"/"+lote.length+"…";
+    if(st)st.textContent="Portadas nuevas: "+ok+(gbCooling()?" · Google limitó el ritmo":"");
+    if(done%10===0)render();
+    await sleep(gbCooling()?2500:650)}
+  render();btn.disabled=false;btn.textContent="🖼 Buscar portadas faltantes";
+  const faltan=BOOKS.filter(b=>!(COVERS[b.id]||COVEROVER[b.id]||(CACHE["gb:"+b.id]||{}).cover||b.cover)).length;
+  if(st)st.innerHTML="<b>"+ok+" portadas nuevas.</b> Faltan "+faltan+" · vuelve a tocar para seguir.";
+  if(syncOn())publishMeta()}
+(function(){const b=el("coverBulk");if(b)b.onclick=coverBulk;})();
 
 </script>
 </body>
