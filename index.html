@@ -363,7 +363,7 @@ body.ro #newShelfBtn,body.ro #shelfNewPhoto,body.ro [data-act="ai"],body.ro [dat
   <footer>
     <img id="footSeal" class="footseal" src="sello.png" alt="Sello de la Biblioteca Marca y Mente">
     <div>Marca y Mente · catálogo generado el 24/07/2026 · 315 libros</div>
-    <div id="verLine" style="margin-top:4px;font-size:11px;color:#B4AEA1">versión 2026.07.24-03:58 (hora Colombia)</div>
+    <div id="verLine" style="margin-top:4px;font-size:11px;color:#B4AEA1">versión 2026.07.24-04:15 (hora Colombia)</div>
   </footer>
 </main>
 
@@ -398,6 +398,12 @@ const firstAuthor=s=>splitAuthors(s)[0]||"";
 const color=c=>COLORS[c]||DEFAULT_COLOR; const el=id=>document.getElementById(id);
 let CACHE={};try{CACHE=JSON.parse(localStorage.getItem("bib_cache_v2")||"{}")}catch(e){CACHE={}}
 function saveCache(){try{localStorage.setItem("bib_cache_v2",JSON.stringify(CACHE))}catch(e){}}
+/* migra la caché vieja (por posición) a claves por código de libro */
+function migrateCache(){let n=0;try{
+  BOOKS.forEach((b,i)=>{const oldk="gb:"+i,newk="gb:"+b.id;
+    if(CACHE[oldk]&&!CACHE[newk]){CACHE[newk]=CACHE[oldk];n++}});
+  if(n){Object.keys(CACHE).forEach(k=>{if(/^gb:\d+$/.test(k))delete CACHE[k]});saveCache()}
+}catch(e){}return n}
 /* limpia biografías guardadas antes de la corrección de nombres */
 (function(){const V="4";try{if(localStorage.getItem("bib_cache_ver")!==V){
   let n=0;Object.keys(CACHE).forEach(k=>{if(k.indexOf("wk:")===0){delete CACHE[k];n++}});
@@ -467,7 +473,7 @@ function render(){const rows=filtered(),q=state.q.trim();
     const ed=b.e?'<span class="tag">'+esc(b.e)+'</span>':'';const ft='';
     const cd='<span class="tag code">'+esc(b.id)+'</span>';
     const fl=b.n?'<span class="tag flag">'+esc(b.n)+'</span>':'';const vd=VIDBOOKS.has(b.i)?'<span class="tag vid">▶ video</span>':'';
-    const cov=COVERS[b.id]||COVEROVER[b.id]||(CACHE["gb:"+b.i]||{}).cover||b.cover||"";
+    const cov=COVERS[b.id]||COVEROVER[b.id]||(CACHE["gb:"+b.id]||{}).cover||b.cover||"";
     const ini=esc((b.t||"?").trim().charAt(0).toUpperCase());
     const thumb='<div class="thumb" data-i="'+b.i+'"'+(cov?' style="background-image:url(\''+cov+'\')"':'')+'>'+(cov?'':'<span class="thi" style="color:'+col+'">'+ini+'</span>')+'</div>';
     return '<article class="card" data-i="'+b.i+'" tabindex="0"><span class="spine" style="background:'+col+'"></span>'+
@@ -494,7 +500,7 @@ function renderMetrics(){el("mTotal").textContent=TOTAL;el("mAuthors").textConte
   renderLangs();renderExtraMetrics()}
 function renderExtraMetrics(){const box=el("mExtra");if(!box)return;
   let pages=[],years=[],langs={};
-  BOOKS.forEach(b=>{const c=CACHE["gb:"+b.i]||{};if(c.pages)pages.push(c.pages);const y=bookYear(b);if(y)years.push(y);if(c.lang)langs[c.lang]=(langs[c.lang]||0)+1});
+  BOOKS.forEach(b=>{const c=CACHE["gb:"+b.id]||{};if(c.pages)pages.push(c.pages);const y=bookYear(b);if(y)years.push(y);if(c.lang)langs[c.lang]=(langs[c.lang]||0)+1});
   if(!pages.length&&!years.length){box.innerHTML='<p style="color:#9A9384;font-size:13px;margin:0">Carga las portadas y datos para ver estas métricas.</p>';return}
   const sum=pages.reduce((a,b)=>a+b,0);const avg=pages.length?Math.round(sum/pages.length):0;
   const oldB=years.length?Math.min.apply(null,years):null,newB=years.length?Math.max.apply(null,years):null;
@@ -689,7 +695,7 @@ async function renderVideos(b){const box=el("dvids");if(!box)return;let vids=[];
     return '<div class="vid"><video src="'+url+'" controls playsinline preload="metadata"></video>'+
       '<div class="vidactions"><button data-share="'+v.id+'">Compartir</button><button data-del="'+v.id+'">Eliminar</button></div></div>'}).join("")}
 
-async function shareBook(b){const info=CACHE["gb:"+b.i]||{};
+async function shareBook(b){const info=CACHE["gb:"+b.id]||{};
   const text=b.t+(b.a?" — "+b.a:"")+"\n"+b.c+(info.synopsis?"\n\n"+info.synopsis.slice(0,320)+(info.synopsis.length>320?"…":""):"")+(info.link?"\n\n"+info.link:"");
   let files=[];if(info.cover){try{const r=await fetch(info.cover);const bl=await r.blob();if(bl&&bl.size)files=[new File([bl],"portada.jpg",{type:bl.type||"image/jpeg"})]}catch(e){}}
   try{if(files.length&&navigator.canShare&&navigator.canShare({files})){await navigator.share({title:b.t,text,files});return}
@@ -707,7 +713,7 @@ async function shareVideo(id,b){let rec;try{rec=await idbGet(id)}catch(e){}if(!r
 /* ---- year enrichment ---- */
 let ENRICHING=false;
 async function enrichAll(onProg,onlyMissing,force){if(ENRICHING)return{ok:0,miss:0,stopped:false};ENRICHING=true;
-  const queue=BOOKS.filter(b=>onlyMissing?!((CACHE["gb:"+b.i]||{}).cover&&(CACHE["gb:"+b.i]||{}).synopsis):true);
+  const queue=BOOKS.filter(b=>onlyMissing?!((CACHE["gb:"+b.id]||{}).cover&&(CACHE["gb:"+b.id]||{}).synopsis):true);
   const BATCH=40;const total=Math.min(queue.length,BATCH);let done=0,ok=0,hits429=0,stopped=false;
   queue.length=total;
   while(queue.length){const b=queue.shift();
@@ -723,10 +729,10 @@ async function enrichYears(){const btn=el("enrichBtn");if(ENRICHING){alert("Ya s
   const st=el("enrStat");
   const rr=await enrichAll((d,t)=>{el("pfill").style.width=Math.round(d/t*100)+"%";
     if(st)st.textContent="Cargando "+d+" de "+t+"…"+(gbCooling()?" · Google limitó el ritmo (429), voy más despacio":"")},true,false);
-  const faltanS=BOOKS.filter(b=>!((CACHE["gb:"+b.i]||{}).synopsis||(metaOver()[b.id]||{}).syn)).length;
+  const faltanS=BOOKS.filter(b=>!((CACHE["gb:"+b.id]||{}).synopsis||(metaOver()[b.id]||{}).syn)).length;
   if(st)st.innerHTML=(rr.stopped?"<b>Google limitó las consultas (429).</b> Espera 3 minutos y vuelve a tocar el botón.<br>":"")+
     "Van <b>"+(BOOKS.length-faltanS)+"</b> de "+BOOKS.length+" sinopsis. Se descargan de a 40 por tanda: vuelve a tocar el botón para continuar.";
-  const faltan=BOOKS.filter(b=>!((CACHE["gb:"+b.i]||{}).cover)).length;
+  const faltan=BOOKS.filter(b=>!((CACHE["gb:"+b.id]||{}).cover)).length;
   if(st)st.textContent=faltan?("Listas "+(BOOKS.length-faltan)+" de "+BOOKS.length+" portadas. Faltan "+faltan+"."):"¡Listo! Todas cargadas.";
   btn.textContent=faltan?"Reintentar faltantes":"Actualizar";btn.disabled=false;renderYears();renderMetrics();render();
   if(syncOn())publishMeta()}
@@ -763,7 +769,7 @@ el("detail").addEventListener("click",async e=>{
   const ct=e.target.closest("[data-cat]");if(ct){state.cat=ct.dataset.cat;state.author="";state.q="";qEl.value="";render();closeDetail();setView("explorar");return}
   const ob=e.target.closest("[data-openbook]");if(ob){openDetail(+ob.dataset.openbook);return}
   const ea=e.target.closest("[data-explore-author]");if(ea){state.author=ea.dataset.exploreAuthor;state.cat="";state.q="";qEl.value="";render();closeDetail();setView("explorar");return}
-  const act=e.target.closest("[data-act]");if(act){const A=act.dataset.act;if(A==="rec")el("recInput").click();else if(A==="share")shareBook(BOOKS[CURRENT]);else if(A==="retry"){delete CACHE["gb:"+CURRENT];saveCache();const b=BOOKS[CURRENT];if(el("dsyn"))el("dsyn").innerHTML='<span class="spinner"></span>Reintentando…';lookupBook(b,true).then(info=>{if(el("dsyn"))el("dsyn").innerHTML=info.synopsis?esc(info.synopsis).replace(/\n+/g,"<br><br>"):(info.neterr?'<span class="muted">Sigue sin conexión.</span>':'<span class="muted">Sin sinopsis en línea.</span>');const cv=el("dcover");if(cv&&info.cover){cv.style.background="url('"+info.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}})}else if(A==="retrybio"){const nm=firstAuthor(BOOKS[CURRENT].a);delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"retrybio")})}else if(A==="authbio"){const nm=CUR_AUTHOR;delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"authbio")})}else if(A==="yt"){setYT(BOOKS[CURRENT])}else if(A==="editcat"){editCat(BOOKS[CURRENT])}else if(A==="edityear"){editYear(BOOKS[CURRENT])}else if(A==="editmeta"){editMeta(BOOKS[CURRENT])}else if(A==="delbook"){deleteBook(BOOKS[CURRENT])}else if(A==="coverurl"){coverByURL(BOOKS[CURRENT])}else if(A==="editsyn"){editSyn(BOOKS[CURRENT])}else if(A==="ai"){aiSynopsis(BOOKS[CURRENT])}else if(A==="aibio"){aiBio(firstAuthor(BOOKS[CURRENT].a),BOOKS[CURRENT])}else if(A==="setcover"){coverMenu(BOOKS[CURRENT])}return}
+  const act=e.target.closest("[data-act]");if(act){const A=act.dataset.act;if(A==="rec")el("recInput").click();else if(A==="share")shareBook(BOOKS[CURRENT]);else if(A==="retry"){delete CACHE["gb:"+BOOKS[CURRENT].id];saveCache();const b=BOOKS[CURRENT];if(el("dsyn"))el("dsyn").innerHTML='<span class="spinner"></span>Reintentando…';lookupBook(b,true).then(info=>{if(el("dsyn"))el("dsyn").innerHTML=info.synopsis?esc(info.synopsis).replace(/\n+/g,"<br><br>"):(info.neterr?'<span class="muted">Sigue sin conexión.</span>':'<span class="muted">Sin sinopsis en línea.</span>');const cv=el("dcover");if(cv&&info.cover){cv.style.background="url('"+info.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}})}else if(A==="retrybio"){const nm=firstAuthor(BOOKS[CURRENT].a);delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"retrybio")})}else if(A==="authbio"){const nm=CUR_AUTHOR;delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"authbio")})}else if(A==="yt"){setYT(BOOKS[CURRENT])}else if(A==="editcat"){editCat(BOOKS[CURRENT])}else if(A==="edityear"){editYear(BOOKS[CURRENT])}else if(A==="editmeta"){editMeta(BOOKS[CURRENT])}else if(A==="delbook"){deleteBook(BOOKS[CURRENT])}else if(A==="coverurl"){coverByURL(BOOKS[CURRENT])}else if(A==="editsyn"){editSyn(BOOKS[CURRENT])}else if(A==="ai"){aiSynopsis(BOOKS[CURRENT])}else if(A==="aibio"){aiBio(firstAuthor(BOOKS[CURRENT].a),BOOKS[CURRENT])}else if(A==="setcover"){coverMenu(BOOKS[CURRENT])}return}
   const sh=e.target.closest("[data-share]");if(sh){shareVideo(+sh.dataset.share,BOOKS[CURRENT]);return}
   const dl=e.target.closest("[data-del]");if(dl){if(confirm("¿Eliminar este video?")){await idbDel(+dl.dataset.del);await refreshVidBooks();renderVideos(BOOKS[CURRENT]);render()}return}});
 el("recInput").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f||CURRENT==null)return;
@@ -840,8 +846,8 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
       '<p class="src"><a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener"><b>Obtener una clave →</b></a> · Modelo: <input id="s_aimodel" class="in" style="display:inline-block;width:auto;padding:4px 8px;font-size:13px" value="'+esc(aiModel())+'"></p></div>'+
     '<div class="dbtns"><button class="btn" id="s_aisave">Guardar clave</button><button class="btn ghost" id="s_aitest">Probar IA</button></div><p class="src" id="aiMsg"></p></section>'+
   '<section><h3>Aplicación</h3>'+
-    '<p class="src">Versión instalada: <b>2026.07.24-03:58</b></p>'+
-    '<p class="src" id="syncState"></p><div class="dbtns"><button class="btn" id="s_pub">Publicar todo ahora</button><button class="btn ghost" id="s_meta">Publicar sinopsis y portadas</button><button class="btn ghost" id="s_share">Compartir la biblioteca</button><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button><button class="btn ghost" id="s_reset">Borrar datos descargados</button><button class="btn ghost" id="s_restore">Libros eliminados</button></div><div class="src" id="diagOut"></div>'+
+    '<p class="src">Versión instalada: <b>2026.07.24-04:15</b></p>'+
+    '<p class="src" id="syncState"></p><div class="dbtns"><button class="btn" id="s_pub">Publicar todo ahora</button><button class="btn ghost" id="s_meta">Publicar sinopsis y portadas</button><button class="btn ghost" id="s_share">Compartir la biblioteca</button><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button><button class="btn ghost" id="s_reset">Borrar datos descargados</button><button class="btn ghost" id="s_restore">Libros eliminados</button><button class="btn ghost" id="s_ro"></button></div><p class="src">El modo solo lectura oculta los botones de editar: útil si prestas el teléfono o lo muestras en clase.</p><div class="src" id="diagOut"></div>'+
     '<p class="src">La app se actualiza sola al abrirla con conexión. Si algo no se ve nuevo, toca “Buscar actualizaciones”.</p></section>';
   openModal2();
   el("s_save").onclick=()=>{try{localStorage.setItem("gh_owner",el("s_owner").value.trim());localStorage.setItem("gh_repo",el("s_repo").value.trim());localStorage.setItem("gh_branch",el("s_branch").value.trim()||"main");const tk=el("s_token").value.trim();if(tk)localStorage.setItem("gh_token",tk);GH.owner=el("s_owner").value.trim();GH.repo=el("s_repo").value.trim();GH.branch=el("s_branch").value.trim()||"main";el("s_msg").textContent="Guardado.";toast("Ajustes guardados.")}catch(e){el("s_msg").textContent="No se pudo guardar."}};
@@ -860,6 +866,10 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
       :'<b style="color:#C0642F">Sin sincronizar.</b> Las portadas que tomes quedan solo en este teléfono y se pierden si borras la app. Pon el token abajo y toca “Publicar todo ahora”.'})();
   el("s_reset").onclick=resetData;
   el("s_restore").onclick=restoreModal;
+  (function(){const b=el("s_ro");if(!b)return;
+    const upd=()=>{b.textContent=readOnly()?"Solo lectura: ACTIVADO":"Solo lectura: desactivado"};upd();
+    b.onclick=()=>{try{localStorage.setItem("read_only",readOnly()?"0":"1")}catch(e){}
+      applyReadOnly();upd();toast(readOnly()?"Modo solo lectura activado.":"Edición habilitada.")}})();
   el("s_upd").onclick=forceUpdate;
   el("s_diag").onclick=async()=>{el("diagOut").innerHTML="Probando…";const r=await diagnose();
     el("diagOut").innerHTML="<b>Diagnóstico</b><br>"+r.map(x=>"• "+esc(x)).join("<br>")};
@@ -911,7 +921,7 @@ if(GH.owner&&GH.repo){fetch('https://raw.githubusercontent.com/'+GH.owner+'/'+GH
 /* thumbnails + preload banner */
 function ensureObs(){if(thumbObs||!("IntersectionObserver"in window))return;thumbObs=new IntersectionObserver(es=>{es.forEach(en=>{if(en.isIntersecting){const t=en.target;thumbObs.unobserve(t);loadThumb(+t.dataset.i,t)}})},{rootMargin:"300px"})}
 function attachThumbs(){ensureObs();document.querySelectorAll("#list .thumb").forEach(t=>{if(t.style.backgroundImage)return;if(thumbObs)thumbObs.observe(t);else loadThumb(+t.dataset.i,t)})}
-async function loadThumb(i,elm){if(!elm)return;const b=BOOKS[i];if(!b)return;const c=COVERS[b.id]||COVEROVER[b.id]||(CACHE["gb:"+i]||{}).cover||b.cover;if(c){elm.style.backgroundImage="url('"+c+"')";elm.innerHTML="";return}
+async function loadThumb(i,elm){if(!elm)return;const b=BOOKS[i];if(!b)return;const c=COVERS[b.id]||COVEROVER[b.id]||(CACHE["gb:"+b.id]||{}).cover||b.cover;if(c){elm.style.backgroundImage="url('"+c+"')";elm.innerHTML="";return}
   if(location.protocol==="file:")return;try{const info=await lookupBook(b);if(info&&info.cover){elm.style.backgroundImage="url('"+info.cover+"')";elm.innerHTML=""}}catch(e){}}
 function coversCached(){let n=0;for(let i=0;i<BOOKS.length;i++){if((CACHE["gb:"+i]||{}).cover)n++;if(n>=25)break}return n}
 function showBanner(){const bn=el("coverBanner");if(!bn)return;bn.style.display=(coversCached()>=25||location.protocol==="file:")?"none":"flex"}
@@ -919,7 +929,7 @@ function showBanner(){const bn=el("coverBanner");if(!bn)return;bn.style.display=
   c.onclick=async()=>{c.disabled=true;const txt=el("cbanTxt");pass++;
     const r=await enrichAll((d,t)=>{if(txt)txt.textContent="Cargando… "+d+"/"+t+(gbCooling()?" (Google limitó el ritmo, voy más despacio)":"")},pass>1,false);
     render();
-    const faltan=BOOKS.filter(b=>!((CACHE["gb:"+b.i]||{}).cover)).length;
+    const faltan=BOOKS.filter(b=>!((CACHE["gb:"+b.id]||{}).cover)).length;
     if(txt)txt.textContent=faltan?("Listas "+(BOOKS.length-faltan)+" de "+BOOKS.length+". Faltan "+faltan+" (algunas no están en las bases)."):"¡Listo! Todas las portadas cargadas.";
     c.disabled=false;c.textContent=faltan?"Reintentar faltantes":"Actualizar";
     if(!faltan)setTimeout(()=>{const bn=el("coverBanner");if(bn)bn.style.display="none"},1500)};
@@ -1094,7 +1104,7 @@ function paintThumbs(){const g=el("shelfGrid");if(!g||PBASE===null)return;
 /* ===== año propio, filtro por década, PWA ===== */
 function yearOver(){try{return JSON.parse(localStorage.getItem("year_over")||"{}")}catch(e){return{}}}
 function bookYear(b){const o=yearOver()[b.id];if(o)return +o;
-  const y=(CACHE["gb:"+b.i]||{}).year;return (y&&/^\d{4}$/.test(y))?+y:0}
+  const y=(CACHE["gb:"+b.id]||{}).year;return (y&&/^\d{4}$/.test(y))?+y:0}
 function editYear(b){const cur=bookYear(b)||"";
   formModal("Año de publicación",[{label:"Año (4 cifras)",val:cur,type:"num"}],vals=>doYear(b,vals[0]),
     "Google Books a veces trae un año equivocado; aquí lo corriges.")}
@@ -1178,10 +1188,10 @@ function editMeta(b){formModal("Corregir libro",
     if((f+"").trim())m.f=parseInt(f,10)||"";if((p+"").trim())m.p=parseInt(p,10)||"";
     o[b.id]=m;saveMeta(o);
     b.t=m.t||b.t;b.a=m.a;if(m.f)b.f=m.f;if(m.p)b.p=m.p;if((b.n||"").indexOf("Confirmar")===0)b.n="";
-    try{delete CACHE["gb:"+b.i]}catch(e){}
+    try{delete CACHE["gb:"+b.id]}catch(e){}
     deriveData();rebuildUI();openDetail(b.i);toast("Datos corregidos.");warnDupe(b);ghSyncAll()},
   "Corrige lo que quedó mal leído en la foto. Se guarda y se comparte con Maritza.")}
-function editSyn(b){const o=metaOver();const cur=(o[b.id]||{}).syn||(CACHE["gb:"+b.i]||{}).synopsis||"";
+function editSyn(b){const o=metaOver();const cur=(o[b.id]||{}).syn||(CACHE["gb:"+b.id]||{}).synopsis||"";
   formModal("Sinopsis de “"+b.t+"”",[{label:"Sinopsis",val:cur,type:"area"}],
     vals=>{const v=vals[0];const m=o[b.id]||{};if(v.trim())m.syn=v.trim();else delete m.syn;
       o[b.id]=m;saveMeta(o);openDetail(b.i);toast("Sinopsis guardada.");ghSyncAll()},
@@ -1193,13 +1203,13 @@ function tokens(txt){return norm(txt||"").replace(/[^a-z0-9ñ\s]/g," ").split(/\
 const PALETTE=["#B9772A","#3A6EA5","#2E8B7B","#C24A6B","#7A5AA6","#B2842B","#2C7C91","#C0642F","#4C7A34","#6C63B5"];
 var RED={nodes:[],links:[],raf:null,sel:null,drag:null,mode:"words",cv:null,ctx:null,W:0,H:0,dpr:1,
   rx:-0.25,ry:0.5,vrx:0,vry:0.0035,last:null,q:"",zoom:1,pinch:null,src:"con",max:150};
-function synOf(b){const m=metaOver()[b.id]||{},c=CACHE["gb:"+b.i]||{};return m.syn||c.synopsis||""}
+function synOf(b){const m=metaOver()[b.id]||{},c=CACHE["gb:"+b.id]||{};return m.syn||c.synopsis||""}
 function conceptsOf(b){const t=synOf(b);
   const m=t.match(/Conceptos?\s+clave\s*:\s*([\s\S]*)$/i);if(!m)return[];
   return m[1].replace(/\.$/,"").split(/[,;·]|\sy\s/).map(x=>norm(x).replace(/[^a-z0-9ñ ]/g," ").replace(/\s+/g," ").trim())
     .filter(x=>x.length>3&&x.length<34&&!STOP.has(x))}
 function synBody(b){const t=synOf(b);return t.replace(/Conceptos?\s+clave\s*:[\s\S]*$/i,"")}
-function bookText(b){const c=CACHE["gb:"+b.i]||{};
+function bookText(b){const c=CACHE["gb:"+b.id]||{};
   return b.t+" "+b.c+" "+(c.cats?c.cats.join(" "):"")+" "+synOf(b)}
 function unitsOf(b,src){
   if(src==="con"){const c=conceptsOf(b);return c.length?c:tokens(b.c)}
@@ -1331,7 +1341,7 @@ function sizeRed(){const cv=RED.cv;if(!cv)return;const r=cv.parentNode.getBoundi
   RED.ctx=cv.getContext("2d");RED.ctx.setTransform(RED.dpr,0,0,RED.dpr,0,0)}
 function startRed(){const cv=el("redCv");if(!cv)return;RED.cv=cv;sizeRed();fillRedAuthors();fillRedModes();
   if(!RED.nodes.length||RED._mode!==RED.mode){RED._mode=RED.mode;buildRed(RED.mode)}
-  const syn=BOOKS.filter(b=>(metaOver()[b.id]||{}).syn||(CACHE["gb:"+b.i]||{}).synopsis).length;
+  const syn=BOOKS.filter(b=>(metaOver()[b.id]||{}).syn||(CACHE["gb:"+b.id]||{}).synopsis).length;
   const lbl=RED.mode==="authors"?" autores":(RED.mode==="books"?" libros":(RED.mode==="cats"?" temáticas":(RED.mode==="country"?" países y autores":({con:" conceptos clave",syn:" palabras de sinopsis",tit:" palabras de títulos",all:" términos"}[RED.src||"con"]))));
   el("redSub").textContent=RED.nodes.length+lbl+" · "+RED.links.length+" conexiones · gira y pellizca";
   if(RED.mode==="country"&&RED.nodes.length<2)el("redInfo").innerHTML='<div class="rcard">Primero ve a <b>Métricas → Autores por país → Buscar países de los autores</b>.</div>';
@@ -1422,8 +1432,8 @@ async function diagnose(){const out=[];
     out.push((r.ok?"OK":"falla "+r.status)+" · Wikipedia (biografías)")}catch(e){out.push("sin acceso · Wikipedia")}
   const tk=ghToken();if(!tk)out.push("sin token · GitHub (las portadas y correcciones no se comparten)");
   else{const g=await ghTest();out.push((g.ok?"OK · ":"")+g.msg)}
-  const nc=BOOKS.filter(b=>(CACHE["gb:"+b.i]||{}).synopsis).length;
-  const nv=BOOKS.filter(b=>(CACHE["gb:"+b.i]||{}).cover).length;
+  const nc=BOOKS.filter(b=>(CACHE["gb:"+b.id]||{}).synopsis).length;
+  const nv=BOOKS.filter(b=>(CACHE["gb:"+b.id]||{}).cover).length;
   out.push(nc+" de "+BOOKS.length+" con sinopsis · "+nv+" con portada");
   if(gbCooling())out.push("Google está limitando ahora mismo: espera unos minutos");
   try{const reg=await navigator.serviceWorker.getRegistration();
@@ -1431,7 +1441,7 @@ async function diagnose(){const out=[];
   catch(e){out.push("no se pudo revisar el service worker")}
   out.push(PBASE===null?"fotos: no encontradas todavía":"fotos: encontradas en “"+(PBASE||"raíz")+"”");
   return out}
-applyMetaOver();applyDeleted();rebuildUI();applyReadOnly();
+migrateCache();applyMetaOver();applyDeleted();rebuildUI();applyReadOnly();
 
 
 /* ===== estantes: foto propia y nuevos ===== */
@@ -1712,7 +1722,7 @@ document.addEventListener("paste",e=>{if(!PASTETARGET)return;
   if(txt&&/^https?:\/\//i.test(txt.trim())){e.preventDefault();coverFromURL(PASTETARGET,txt.trim())}});
 function coverMenu(b){
   const q=encodeURIComponent(b.t+" "+(b.a||""));
-  const cur=COVERS[b.id]||COVEROVER[b.id]||(CACHE["gb:"+b.i]||{}).cover||"";
+  const cur=COVERS[b.id]||COVEROVER[b.id]||(CACHE["gb:"+b.id]||{}).cover||"";
   el("modal2").innerHTML='<h2>Portada de “'+esc(b.t)+'”</h2>'+
     (cur?'<img src="'+cur+'" style="height:150px;border-radius:10px;display:block;margin:6px 0 12px;box-shadow:0 3px 12px rgba(23,34,59,.18)">':'')+
     '<p class="src">Busca la portada y cópiala, o usa una foto tuya.</p>'+
@@ -1828,7 +1838,7 @@ function fillRedModes(){const sel=el("redMode");if(!sel)return;
 async function publishMeta(){if(!syncOn()){alert("Configura primero el token de GitHub.");return}
   const btn=el("s_meta");if(btn){btn.disabled=true;btn.textContent="Publicando datos…"}
   const gb={},wk={};
-  BOOKS.forEach(b=>{const c=CACHE["gb:"+b.i];if(!c)return;
+  BOOKS.forEach(b=>{const c=CACHE["gb:"+b.id];if(!c)return;
     const o={};if(c.cover)o.c=c.cover;if(c.synopsis)o.s=c.synopsis;if(c.year)o.y=c.year;
     if(c.pages)o.p=c.pages;if(c.lang)o.l=c.lang;if(c.cats)o.k=c.cats;if(c.isbn)o.i=c.isbn;
     if(Object.keys(o).length)gb[b.id]=o});
@@ -1851,8 +1861,8 @@ function isEnglish(t){if(!t)return false;
   const w=t.split(/\s+/).length;return w>8&&(m/w)>0.085}
 function mergeMeta(j){if(!j)return 0;let n=0;
   if(j.d&&j.d.length){const byId={};BOOKS.forEach(b=>byId[b.id]=b);
-    j.d.forEach(id=>{const b=byId[id];if(!b)return;const c=CACHE["gb:"+b.i];
-      if(c){delete c.synopsis;delete c.q;CACHE["gb:"+b.i]=c}})}
+    j.d.forEach(id=>{const b=byId[id];if(!b)return;const c=CACHE["gb:"+b.id];
+      if(c){delete c.synopsis;delete c.q;CACHE["gb:"+b.id]=c}})}
   if(j.cat){const byId={};BOOKS.forEach(b=>byId[b.id]=b);const uo=catOver();
     Object.keys(j.cat).forEach(id=>{const b=byId[id];if(!b)return;
       const k=norm((b.t||"")+"|"+(b.a||""));if(uo[k])return;
@@ -1860,7 +1870,7 @@ function mergeMeta(j){if(!j)return 0;let n=0;
     deriveData()}
   if(j.gb){const byId={};BOOKS.forEach(b=>byId[b.id]=b);
     Object.keys(j.gb).forEach(id=>{const b=byId[id];if(!b)return;const o=j.gb[id];
-      const cur=CACHE["gb:"+b.i]||{};
+      const cur=CACHE["gb:"+b.id]||{};
       if(!cur.synopsis&&o.s){cur.synopsis=o.s;cur.q=(o.q===0?0:1);n++}
       if(!cur.cover&&o.c)cur.cover=o.c;
       if(!cur.year&&o.y)cur.year=o.y;
@@ -1868,7 +1878,7 @@ function mergeMeta(j){if(!j)return 0;let n=0;
       if(!cur.lang&&o.l)cur.lang=o.l;
       if(!cur.cats&&o.k)cur.cats=o.k;
       if(!cur.isbn&&o.i)cur.isbn=o.i;
-      cur._done=true;CACHE["gb:"+b.i]=cur})}
+      cur._done=true;CACHE["gb:"+b.id]=cur})}
   if(j.wk){Object.keys(j.wk).forEach(a=>{if(CACHE["wk:"+a]&&CACHE["wk:"+a].bio)return;
     const o=j.wk[a];CACHE["wk:"+a]={bio:o.b,photo:o.p||"",link:o.l||"",_done:true};n++})}
   saveCache();return n}
@@ -1882,8 +1892,7 @@ async function shareApp(){const url=location.href.split("?")[0];
   try{if(navigator.share){await navigator.share({title:"Biblioteca Marca y Mente",text:text,url:url});return}}catch(e){if(e&&e.name==="AbortError")return}
   try{await navigator.clipboard.writeText(url);alert("Enlace copiado:\n"+url)}catch(e){alert(url)}}
 /* modo solo lectura cuando no hay token */
-function readOnly(){try{if(localStorage.getItem("allow_edit")==="1")return false}catch(e){}
-  return !syncOn()}
+function readOnly(){try{return localStorage.getItem("read_only")==="1"}catch(e){return false}}
 function applyReadOnly(){const ro=readOnly();
   document.body.classList.toggle("ro",ro)}
 
@@ -1930,7 +1939,7 @@ async function aiBio(name,b){
 async function aiBulk(){
   if(!aiKey()){alert("Primero pon tu clave de IA en ⚙ Ajustes → Inteligencia artificial.");return}
   const btn=el("aiBulk");const st=el("enrStat");
-  const pend=BOOKS.filter(b=>!((metaOver()[b.id]||{}).syn||(CACHE["gb:"+b.i]||{}).synopsis));
+  const pend=BOOKS.filter(b=>!((metaOver()[b.id]||{}).syn||(CACHE["gb:"+b.id]||{}).synopsis));
   if(!pend.length){if(st)st.textContent="Todos los libros ya tienen sinopsis.";return}
   if(!confirm("Se van a redactar "+Math.min(25,pend.length)+" sinopsis con IA (de "+pend.length+" pendientes).\n\nTiene un costo pequeño en tu cuenta de Anthropic. ¿Continuar?"))return;
   btn.disabled=true;let done=0,ok=0;
@@ -1960,15 +1969,15 @@ async function aiBulk(){
 /* ===== completitud del catálogo ===== */
 function compStats(){
   const has=(b,k)=>{
-    if(k==="cover")return !!(COVERS[b.id]||COVEROVER[b.id]||(CACHE["gb:"+b.i]||{}).cover||b.cover);
-    if(k==="syn"){const m=metaOver()[b.id]||{},c=CACHE["gb:"+b.i]||{};return !!(m.syn||c.synopsis)};
-    if(k==="synok"){const m=metaOver()[b.id]||{},c=CACHE["gb:"+b.i]||{};return !!(m.syn||(c.synopsis&&c.q!==0))};
+    if(k==="cover")return !!(COVERS[b.id]||COVEROVER[b.id]||(CACHE["gb:"+b.id]||{}).cover||b.cover);
+    if(k==="syn"){const m=metaOver()[b.id]||{},c=CACHE["gb:"+b.id]||{};return !!(m.syn||c.synopsis)};
+    if(k==="synok"){const m=metaOver()[b.id]||{},c=CACHE["gb:"+b.id]||{};return !!(m.syn||(c.synopsis&&c.q!==0))};
     if(k==="bio"){const a=firstAuthor(b.a);return !!(a&&(CACHE["wk:"+a]||{}).bio)};
     if(k==="aut")return !!(b.a&&b.a.trim());
     if(k==="ed")return !!(b.e&&b.e.trim());
     if(k==="year")return !!bookYear(b);
     if(k==="shelf")return !!b.f;
-    if(k==="esp"){const m=metaOver()[b.id]||{},c=CACHE["gb:"+b.i]||{};const t=m.syn||c.synopsis||"";return !!t&&!isEnglish(t)};
+    if(k==="esp"){const m=metaOver()[b.id]||{},c=CACHE["gb:"+b.id]||{};const t=m.syn||c.synopsis||"";return !!t&&!isEnglish(t)};
     return false};
   const keys=["cover","syn","synok","bio","aut","ed","year","shelf","esp"];
   const out={};keys.forEach(k=>{out[k]=BOOKS.filter(b=>!has(b,k))});
@@ -2000,7 +2009,7 @@ function showComp(k){const m=compStats();const arr=m[k]||[];
 
 
 /* ===== control de versión visible y fiable ===== */
-const APP_VER="2026.07.24-03:58";
+const APP_VER="2026.07.24-04:15";
 async function checkVersion(silent){
   try{const r=await fetch("version.json?_="+Date.now(),{cache:"no-store"});
     if(!r.ok)return null;const j=await r.json();
@@ -2016,7 +2025,7 @@ async function checkVersion(silent){
 
 
 /* ===== idioma de cada libro ===== */
-function bookLang(b){const c=CACHE["gb:"+b.i]||{};
+function bookLang(b){const c=CACHE["gb:"+b.id]||{};
   const m=metaOver()[b.id]||{};
   if(m.lang)return m.lang;
   if(c.lang&&(c.lang==="es"||c.lang==="en"))return c.lang;
