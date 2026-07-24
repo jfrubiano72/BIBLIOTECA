@@ -262,7 +262,7 @@ body.ro #newShelfBtn,body.ro #shelfNewPhoto,body.ro [data-act="ai"],body.ro [dat
 
   <section class="view" id="v-red">
     <div class="view-head"><div><h2>Mapa de conexiones</h2><p id="redSub">Toca un punto para ver con qué se conecta</p></div>
-      <div class="segw"><button class="seg on" id="rWords">Palabras</button><button class="seg" id="rAuth">Autores</button><button class="seg" id="rCtry">Países</button></div>
+      <select id="redMode" class="catsel" style="color:var(--ink);background:#fff;border-color:var(--line);margin:0;min-width:190px" aria-label="Qué ver"></select>
     </div>
     <input id="redQ" class="ainput" type="search" placeholder="Escribe una palabra (ej: cerebro, marca, atención)">
     <div class="row" style="gap:8px;margin-bottom:10px">
@@ -784,7 +784,7 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
       '<p class="src"><a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener"><b>Obtener una clave →</b></a> · Modelo: <input id="s_aimodel" class="in" style="display:inline-block;width:auto;padding:4px 8px;font-size:13px" value="'+esc(aiModel())+'"></p></div>'+
     '<div class="dbtns"><button class="btn" id="s_aisave">Guardar clave</button><button class="btn ghost" id="s_aitest">Probar IA</button></div><p class="src" id="aiMsg"></p></section>'+
   '<section><h3>Aplicación</h3>'+
-    '<p class="src">Versión instalada: <b>2026.07.24-0708</b></p>'+
+    '<p class="src">Versión instalada: <b>2026.07.24-0728</b></p>'+
     '<p class="src" id="syncState"></p><div class="dbtns"><button class="btn" id="s_pub">Publicar todo ahora</button><button class="btn ghost" id="s_meta">Publicar sinopsis y portadas</button><button class="btn ghost" id="s_share">Compartir la biblioteca</button><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button></div><div class="src" id="diagOut"></div>'+
     '<p class="src">La app se actualiza sola al abrirla con conexión. Si algo no se ve nuevo, toca “Buscar actualizaciones”.</p></section>';
   openModal2();
@@ -1131,7 +1131,29 @@ function unitsOf(b,src){
   return conceptsOf(b).concat(tokens(b.t)).concat(tokens(synBody(b)))}
 function buildRed(mode){
   const nodes=[],links=[],idx={};
-  if(mode==="country"){
+  if(mode==="books"){
+    BOOKS.forEach(b=>{idx["B:"+b.i]=nodes.length;
+      nodes.push({id:"B:"+b.i,label:b.t.length>26?b.t.slice(0,25)+"…":b.t,w:2,type:"b",cat:b.c,bi:b.i})});
+    const byC={};BOOKS.forEach(b=>{conceptsOf(b).forEach(c=>{(byC[c]=byC[c]||[]).push(b.i)})});
+    const seen={};
+    Object.keys(byC).forEach(c=>{const arr=byC[c];
+      for(let i=0;i<arr.length;i++)for(let j=i+1;j<arr.length&&j<i+4;j++){
+        const k=arr[i]<arr[j]?arr[i]+"-"+arr[j]:arr[j]+"-"+arr[i];
+        if(seen[k])return;seen[k]=1;links.push([idx["B:"+arr[i]],idx["B:"+arr[j]],1])}});
+    const byCat={};BOOKS.forEach(b=>{(byCat[b.c]=byCat[b.c]||[]).push(b.i)});
+    Object.keys(byCat).forEach(c=>{const arr=byCat[c];
+      for(let i=0;i+1<arr.length;i++){const k=arr[i]+"-"+arr[i+1];if(seen[k])continue;seen[k]=1;
+        links.push([idx["B:"+arr[i]],idx["B:"+arr[i+1]],1])}});
+  }else if(mode==="cats"){
+    const cs=Object.keys(CATCOUNT).sort((a,b)=>CATCOUNT[b]-CATCOUNT[a]);
+    cs.forEach(c=>{idx["K:"+c]=nodes.length;nodes.push({id:c,label:c,w:CATCOUNT[c],type:"k",cat:c})});
+    const conByCat={};
+    BOOKS.forEach(b=>{conceptsOf(b).forEach(c=>{(conByCat[b.c]=conByCat[b.c]||{})[c]=1})});
+    for(let i=0;i<cs.length;i++)for(let j=i+1;j<cs.length;j++){
+      const A=conByCat[cs[i]]||{},B2=conByCat[cs[j]]||{};
+      let sh=0;Object.keys(A).forEach(k=>{if(B2[k])sh++});
+      if(sh>=2)links.push([idx["K:"+cs[i]],idx["K:"+cs[j]],Math.min(3,sh)])}
+  }else if(mode==="country"){
     const st=countryStats();const keys=Object.keys(st).sort((a,b)=>st[b].length-st[a].length);
     keys.forEach(k=>{idx["C:"+k]=nodes.length;nodes.push({id:k,label:k,w:st[k].length*3,type:"c",cat:k})});
     keys.forEach(k=>{st[k].slice(0,12).forEach(a=>{
@@ -1139,14 +1161,17 @@ function buildRed(mode){
       links.push([idx["C:"+k],idx["A:"+a],2])})});
     for(let i=0;i<keys.length-1;i++)links.push([idx["C:"+keys[i]],idx["C:"+keys[i+1]],1]);
   }else if(mode==="authors"){
-    const top=AUTH_COUNT.slice(0,50);
+    const top=AUTH_ALPHA.slice();
     top.forEach(a=>{idx[a]=nodes.length;
-      const ctry=authorCountry(a);const c=ctry||BOOKS[AUTH[a][0]].c;
+      const ctry=authorCountry(a);const c=BOOKS[AUTH[a][0]].c;
       nodes.push({id:a,label:a,w:AUTH[a].length,type:"a",cat:c,ctry:ctry})});
     const byCat={};
     top.forEach(a=>AUTH[a].forEach(i=>{const c=BOOKS[i].c;(byCat[c]=byCat[c]||new Set()).add(a)}));
     Object.keys(byCat).forEach(c=>{const arr=[...byCat[c]];
-      for(let i=0;i<arr.length;i++)for(let j=i+1;j<arr.length&&j<i+7;j++)links.push([idx[arr[i]],idx[arr[j]],1])});
+      for(let i=0;i<arr.length;i++)for(let j=i+1;j<arr.length&&j<i+3;j++)links.push([idx[arr[i]],idx[arr[j]],1])});
+    const byCon={};BOOKS.forEach(b=>conceptsOf(b).forEach(c=>{splitAuthors(b.a).forEach(a=>{if(idx[a]!=null)(byCon[c]=byCon[c]||new Set()).add(a)})}));
+    Object.keys(byCon).forEach(c=>{const arr=[...byCon[c]];
+      for(let i=0;i<arr.length;i++)for(let j=i+1;j<arr.length&&j<i+2;j++)links.push([idx[arr[i]],idx[arr[j]],2])});
   }else{
     const src=RED.src||"con";const MAXN=RED.max||150;
     const freq={},docs=[],catOf={};
@@ -1171,12 +1196,17 @@ function buildRed(mode){
     n.vx=n.vy=n.vz=0;n.r=Math.max(4,Math.min(15,3+Math.sqrt(n.w)*2.1));
     n.col=PALETTE[Math.max(0,cats.indexOf(n.cat))%PALETTE.length]});
   RED.nodes=nodes;RED.links=links;RED.sel=null}
-function stepRed(){const N=RED.nodes,L=RED.links;
-  for(let i=0;i<N.length;i++){const a=N[i];
-    for(let j=i+1;j<N.length;j++){const b=N[j];
+function stepRed(){const N=RED.nodes,L=RED.links;const n=N.length;
+  const K=n>120?45:n;const rep=n>120?9000*(n/K)*0.55:9000;
+  for(let i=0;i<n;i++){const a=N[i];
+    if(n<=120){for(let j=i+1;j<n;j++){const b=N[j];
       let dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,d2=dx*dx+dy*dy+dz*dz;if(d2<25)d2=25;
-      const d=Math.sqrt(d2),f=9000/d2/d;
+      const d=Math.sqrt(d2),f=rep/d2/d;
       a.vx-=dx*f;a.vy-=dy*f;a.vz-=dz*f;b.vx+=dx*f;b.vy+=dy*f;b.vz+=dz*f}}
+    else{for(let s2=0;s2<K;s2++){const b=N[(Math.random()*n)|0];if(b===a)continue;
+      let dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,d2=dx*dx+dy*dy+dz*dz;if(d2<25)d2=25;
+      const d=Math.sqrt(d2),f=rep/d2/d;
+      a.vx-=dx*f;a.vy-=dy*f;a.vz-=dz*f}}}
   L.forEach(l=>{const a=N[l[0]],b=N[l[1]];if(!a||!b)return;
     const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,d=Math.hypot(dx,dy,dz)||1;
     const f=(d-95)*0.0055*Math.min(2.2,l[2]);
@@ -1211,7 +1241,7 @@ function drawRed(){const c=RED.ctx;if(!c)return;const N=RED.nodes;
     c.beginPath();c.arc(p.sx,p.sy,r,0,6.2832);
     c.fillStyle=i===sel?"#B9772A":(on?n.col:"rgba(120,128,145,.18)");
     c.globalAlpha=on?(0.55+0.45*p.s):0.5;c.fill();c.globalAlpha=1;
-    if(on&&(r>6||i===sel||match)){c.fillStyle="rgba(23,34,59,"+(i===sel?1:0.72)+")";
+    if(on&&(i===sel||match||(r>6&&N.length<=160)||(N.length>160&&r>9))){c.fillStyle="rgba(23,34,59,"+(i===sel?1:0.72)+")";
       c.font=(i===sel?"600 ":"")+Math.round(Math.max(9,Math.min(14,10*p.s+2)))+"px Inter, sans-serif";
       c.textAlign="center";c.fillText(n.label,p.sx,p.sy-r-5)}})}
 function loopRed(){stepRed();drawRed();RED.raf=requestAnimationFrame(loopRed)}
@@ -1219,10 +1249,10 @@ function sizeRed(){const cv=RED.cv;if(!cv)return;const r=cv.parentNode.getBoundi
   RED.dpr=Math.min(2,window.devicePixelRatio||1);RED.W=Math.max(240,r.width);RED.H=430;
   cv.width=RED.W*RED.dpr;cv.height=RED.H*RED.dpr;cv.style.height=RED.H+"px";
   RED.ctx=cv.getContext("2d");RED.ctx.setTransform(RED.dpr,0,0,RED.dpr,0,0)}
-function startRed(){const cv=el("redCv");if(!cv)return;RED.cv=cv;sizeRed();fillRedAuthors();
+function startRed(){const cv=el("redCv");if(!cv)return;RED.cv=cv;sizeRed();fillRedAuthors();fillRedModes();
   if(!RED.nodes.length||RED._mode!==RED.mode){RED._mode=RED.mode;buildRed(RED.mode)}
   const syn=BOOKS.filter(b=>(metaOver()[b.id]||{}).syn||(CACHE["gb:"+b.i]||{}).synopsis).length;
-  const lbl=RED.mode==="authors"?" autores":(RED.mode==="country"?" países y autores":({con:" conceptos clave",syn:" palabras de sinopsis",tit:" palabras de títulos",all:" términos"}[RED.src||"con"]));
+  const lbl=RED.mode==="authors"?" autores":(RED.mode==="books"?" libros":(RED.mode==="cats"?" temáticas":(RED.mode==="country"?" países y autores":({con:" conceptos clave",syn:" palabras de sinopsis",tit:" palabras de títulos",all:" términos"}[RED.src||"con"]))));
   el("redSub").textContent=RED.nodes.length+lbl+" · "+RED.links.length+" conexiones · gira y pellizca";
   if(RED.mode==="country"&&RED.nodes.length<2)el("redInfo").innerHTML='<div class="rcard">Primero ve a <b>Métricas → Autores por país → Buscar países de los autores</b>.</div>';
   if(RED.mode!=="authors"&&syn<30)el("redInfo").innerHTML='<div class="rcard">El mapa mejora mucho con las sinopsis: ve a <b>Métricas → Cargar portadas y datos</b>. Ahora mismo hay <b>'+syn+'</b> sinopsis guardadas.</div>';
@@ -1237,6 +1267,19 @@ function redSelect(i){RED.sel=i;const n=RED.nodes[i];if(!n){el("redInfo").innerH
   const nb=[];RED.links.forEach(l=>{if(l[0]===i)nb.push(RED.nodes[l[1]]);if(l[1]===i)nb.push(RED.nodes[l[0]])});
   nb.sort((a,b)=>b.w-a.w);
   const chips=nb.slice(0,12).map(x=>'<span class="rchip" style="border-color:'+x.col+'55" data-rnode="'+esc(x.id)+'">'+esc(x.id)+'</span>').join("");
+  if(n.type==="b"){const b2=BOOKS[n.bi];
+    el("redInfo").innerHTML='<div class="rcard"><h4 style="color:'+n.col+'">'+esc(b2.t)+'</h4>'+
+      '<div class="rmeta">'+esc(b2.a||"Autor por confirmar")+' · '+esc(b2.c)+' · '+esc(b2.id)+'</div>'+
+      '<div class="chipline">'+conceptsOf(b2).map(c=>'<span class="rchip">'+esc(c)+'</span>').join("")+'</div>'+
+      '<button class="btn" data-rbook="'+n.bi+'">Abrir la ficha</button></div>';return}
+  if(n.type==="k"){const bs=BOOKS.filter(x=>x.c===n.id);
+    const au={};bs.forEach(x=>splitAuthors(x.a).forEach(a=>au[a]=(au[a]||0)+1));
+    const tops=Object.keys(au).sort((a,b)=>au[b]-au[a]).slice(0,8);
+    el("redInfo").innerHTML='<div class="rcard"><h4 style="color:'+n.col+'">'+esc(n.id)+'</h4>'+
+      '<div class="rmeta">'+bs.length+' libros · '+Object.keys(au).length+' autores</div>'+
+      '<div class="chipline">'+tops.map(a=>'<span class="rchip" data-rauthor2="'+esc(a)+'">'+esc(a)+'</span>').join("")+'</div>'+
+      '<button class="btn" data-rcat="'+esc(n.id)+'">Ver los '+bs.length+' libros</button>'+
+      '<div style="margin-top:10px">'+bs.slice(0,8).map(x=>'<div class="ctrrow" data-rbook="'+x.i+'"><span class="cn">'+esc(x.t)+'</span><span class="cc">'+esc(splitAuthors(x.a)[0]||"—")+'</span></div>').join("")+'</div></div>';return}
   if(n.type==="c"){const st=countryStats();const as=(st[n.id]||[]).slice().sort((a,b)=>AUTH[b].length-AUTH[a].length);
     el("redInfo").innerHTML='<div class="rcard"><h4 style="color:'+n.col+'">'+esc(n.id)+'</h4>'+
       '<div class="rmeta">'+as.length+' autores de este país</div><div class="chipline">'+
@@ -1273,8 +1316,7 @@ function redSelect(i){RED.sel=i;const n=RED.nodes[i];if(!n){el("redInfo").innerH
   window.addEventListener("mousemove",move);cv.addEventListener("touchmove",move,{passive:false});
   window.addEventListener("mouseup",up);cv.addEventListener("touchend",up);
   window.addEventListener("resize",()=>{if(state.view==="red")sizeRed()});
-  el("rWords").onclick=()=>{RED.mode="words";el("rWords").classList.add("on");el("rAuth").classList.remove("on");el("redInfo").innerHTML="";startRed()};
-  el("rAuth").onclick=()=>{RED.mode="authors";el("rAuth").classList.add("on");el("rWords").classList.remove("on");el("redInfo").innerHTML="";startRed()};
+
   const rq=el("redQ");if(rq)rq.addEventListener("input",()=>{RED.q=rq.value.trim();
     if(RED.q){const i=RED.nodes.findIndex(n=>norm(n.label).indexOf(norm(RED.q))>=0);if(i>=0)redSelect(i)}});
   el("redInfo").addEventListener("click",e=>{
@@ -1282,6 +1324,8 @@ function redSelect(i){RED.sel=i;const n=RED.nodes[i];if(!n){el("redInfo").innerH
     const a=e.target.closest("[data-rauthor]");if(a){openAuthor(a.dataset.rauthor);return}
     const a2=e.target.closest("[data-rauthor2]");if(a2){openAuthor(a2.dataset.rauthor2);return}
     const rb=e.target.closest("[data-rbook]");if(rb){openDetail(+rb.dataset.rbook);return}
+    const rc=e.target.closest("[data-rcat]");if(rc){state.cat=rc.dataset.rcat;state.author="";state.ed="";state.dec="";state.q="";
+      const qi=el("q");if(qi)qi.value="";render();setView("explorar");return}
     const sq=e.target.closest("[data-rsearch]");if(sq){const q=sq.dataset.rsearch;
       state.q=q;const qi=el("q");if(qi)qi.value=q;state.cat="";state.author="";state.ed="";state.dec="";
       const cl=el("clear");if(cl)cl.classList.add("show");render();setView("explorar")}})})();
@@ -1377,8 +1421,7 @@ function fillRedAuthors(){const sel=el("redAuthor");if(!sel)return;
     AUTH_ALPHA.map(a=>'<option value="'+esc(a)+'">'+esc(a)+' ('+AUTH[a].length+')</option>').join("")}
 (function(){const sel=el("redAuthor");if(!sel)return;
   sel.addEventListener("change",()=>{const a=sel.value;if(!a)return;
-    RED.mode="authors";el("rAuth").classList.add("on");el("rWords").classList.remove("on");
-    RED._mode=null;startRed();
+    RED.mode="authors";RED._mode=null;startRed();
     let i=RED.nodes.findIndex(n=>n.id===a);
     if(i<0){const c=BOOKS[AUTH[a][0]].c;
       RED.nodes.push({id:a,label:a,w:AUTH[a].length,type:"a",cat:c,x:0,y:0,z:0,vx:0,vy:0,vz:0,
@@ -1654,22 +1697,30 @@ function warnDupe(b){const k=normTitle(b.t);
   toast("Ojo: ya existe otro libro con ese título ("+others.map(x=>x.id).join(", ")+")")}
 /* ===== red: reiniciar y modo países ===== */
 function redReset(){RED.zoom=1;RED.rx=-0.25;RED.ry=0.5;RED.sel=null;RED.q="";
-  const q=el("redQ");if(q)q.value="";const sa=el("redAuthor");if(sa)sa.value="";
+  const q=el("redQ");if(q)q.value="";const sa=el("redAuthor");if(sa)sa.value="";RED.mode="words";RED.src="con";
   el("redInfo").innerHTML="";RED._mode=null;startRed()}
+function fillRedModes(){const sel=el("redMode");if(!sel)return;
+  const cats=Object.keys(CATCOUNT).length;
+  sel.innerHTML=
+    '<option value="w:con">Conceptos de las sinopsis</option>'+
+    '<option value="w:syn">Palabras de las sinopsis</option>'+
+    '<option value="w:tit">Palabras de los títulos</option>'+
+    '<option value="w:all">Todo combinado</option>'+
+    '<option value="authors">Autores ('+AUTH_ALPHA.length+')</option>'+
+    '<option value="books">Libros ('+BOOKS.length+')</option>'+
+    '<option value="cats">Temáticas ('+cats+')</option>'+
+    '<option value="country">Países</option>';
+  sel.value=(RED.mode==="words"?"w:"+(RED.src||"con"):RED.mode)}
 (function(){const b=el("redReset");if(b)b.onclick=redReset;
+  const sel=el("redMode");
+  if(sel)sel.addEventListener("change",()=>{const v=sel.value;
+    if(v.indexOf("w:")===0){RED.mode="words";RED.src=v.slice(2)}else RED.mode=v;
+    RED._mode=null;RED.sel=null;el("redInfo").innerHTML="";startRed()});
   const sc=el("redSrc"),mx=el("redMax");
   if(sc)sc.addEventListener("change",()=>{RED.src=sc.value;RED._mode=null;el("redInfo").innerHTML="";startRed()});
   if(mx)mx.addEventListener("change",()=>{RED.max=+mx.value;RED._mode=null;el("redInfo").innerHTML="";startRed()});
-  const sync=()=>{const on=(RED.mode!=="authors"&&RED.mode!=="country");
-    if(sc)sc.parentNode.style.display=on?"flex":"none"};
-  ["rWords","rAuth","rCtry"].forEach(id=>{const e2=el(id);if(e2)e2.addEventListener("click",()=>setTimeout(sync,10))});
-  setTimeout(sync,50);})();
-(function(){const c=el("rCtry");if(!c)return;
-  c.onclick=()=>{RED.mode="country";c.classList.add("on");el("rWords").classList.remove("on");el("rAuth").classList.remove("on");
-    el("redInfo").innerHTML="";RED._mode=null;startRed()};
-  const w=el("rWords"),a=el("rAuth");
-  const off=()=>c.classList.remove("on");
-  if(w)w.addEventListener("click",off);if(a)a.addEventListener("click",off)})();
+  })();
+
 
 
 /* ===== meta.json: publicar y cargar sinopsis/portadas/biografías para todos ===== */
