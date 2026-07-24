@@ -186,6 +186,15 @@ footer{text-align:center;color:#9A9384;font-size:12px;padding:6px 16px 24px}
 .updbar{position:fixed;left:0;right:0;bottom:calc(66px + env(safe-area-inset-bottom));z-index:70;display:flex;align-items:center;gap:12px;
  background:var(--ochre);color:#fff;padding:12px 16px;font-size:14px;box-shadow:0 -3px 14px rgba(0,0,0,.18)}
 .updbar button{margin-left:auto;background:#fff;color:var(--ink);border:0;border-radius:9px;padding:8px 14px;font-weight:700;font-size:13.5px;cursor:pointer}
+
+.redwrap{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;touch-action:none}
+#redCv{display:block;width:100%;height:400px}
+.redinfo{margin-top:12px}
+.redinfo .rcard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+.redinfo h4{margin:0 0 4px;font-family:Fraunces,serif;font-size:19px;font-weight:600}
+.redinfo .rmeta{font-size:13px;color:var(--meta);margin-bottom:10px}
+.redinfo .chipline{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.redinfo .rchip{background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12.5px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -238,6 +247,14 @@ footer{text-align:center;color:#9A9384;font-size:12px;padding:6px 16px 24px}
     <div id="shelfList"></div>
   </section>
 
+  <section class="view" id="v-red">
+    <div class="view-head"><div><h2>Mapa de conexiones</h2><p id="redSub">Toca un punto para ver con qué se conecta</p></div>
+      <div class="segw"><button class="seg on" id="rWords">Palabras</button><button class="seg" id="rAuth">Autores</button></div>
+    </div>
+    <div class="redwrap"><canvas id="redCv"></canvas></div>
+    <div id="redInfo" class="redinfo"></div>
+  </section>
+
   <section class="view" id="v-metricas">
     <div class="view-head"><div><h2>Métricas</h2><p>Tu colección en números</p></div></div>
     <div class="stat">
@@ -267,6 +284,7 @@ footer{text-align:center;color:#9A9384;font-size:12px;padding:6px 16px 24px}
   <button data-view="explorar" class="on"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Explorar</button>
   <button data-view="autores"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Autores</button>
   <button data-view="mapa"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18M7 4v16M17 4v16"/></svg>Mapa</button>
+  <button data-view="red"><svg viewBox="0 0 24 24"><circle cx="6" cy="7" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="12" cy="13" r="2.6"/><circle cx="6" cy="19" r="2.2"/><circle cx="18" cy="18" r="2.2"/><path d="M7.8 8.4 10 11.4M16.4 7.6 13.6 11M10.4 14.8 7.6 17.4M13.8 14.6 16.4 16.6"/></svg>Red</button>
   <button data-view="metricas"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Métricas</button>
 </nav>
 
@@ -496,8 +514,9 @@ function openDetail(i){CURRENT=i;CUR_AUTHOR=null;const b=BOOKS[i];const col=colo
   const byline=b.a?'Por <a data-author="'+esc(firstAuthor(b.a))+'">'+esc(b.a)+'</a>':'<span class="muted">Autor por confirmar</span>';
   el("detail").innerHTML='<div class="top"><div class="cover" id="dcover">Buscando<br>portada…</div><div style="flex:1">'+
       '<h2>'+esc(b.t)+'</h2><div class="by">'+byline+'</div><div class="facts">'+facts+'</div>'+
-      '<div class="dbtns"><button class="btn" data-act="share">Compartir libro</button><button class="btn ghost" data-act="setcover">📷 Poner portada</button></div></div></div>'+
-    '<section><h3>Sinopsis</h3><div class="body" id="dsyn"><span class="spinner"></span>Buscando en Internet…</div></section>'+
+      '<div class="dbtns"><button class="btn" data-act="share">Compartir libro</button><button class="btn ghost" data-act="setcover">📷 Poner portada</button><button class="btn ghost" data-act="editmeta">✎ Corregir título / autor</button></div></div></div>'+
+    '<section><h3>Sinopsis</h3><div class="body" id="dsyn"><span class="spinner"></span>Buscando en Internet…</div>'+
+      '<button class="btn ghost" data-act="editsyn" style="margin-top:10px">✎ Escribir / corregir sinopsis</button></section>'+
     (b.a?'<section><h3>Sobre el autor</h3><div class="body" id="dbio"><span class="spinner"></span>Buscando biografía…</div></section>':'')+
     '<section><h3>¿Dónde conseguirlo?</h3><div class="buy">'+
       '<a class="buybtn" target="_blank" rel="noopener" href="https://www.google.com/search?tbm=bks&q='+enc+'">Google Books</a>'+
@@ -514,7 +533,9 @@ function openDetail(i){CURRENT=i;CUR_AUTHOR=null;const b=BOOKS[i];const col=colo
   el("overlay").classList.add("show");document.body.style.overflow="hidden";el("sheet").scrollTop=0;
   const gsearch='https://www.google.com/search?q='+encodeURIComponent(b.t+' '+(b.a||'')+' libro');
   withTimeout(lookupBook(b),14000).then(info=>{if(info&&info.timeout)info={neterr:true};const cv=el("dcover");if(cv&&!(COVERS[b.id]||COVEROVER[b.id]||b.cover)){if(info.cover){cv.style.background="url('"+info.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}else cv.textContent="Sin portada"}
-    if(el("dsyn")){if(info.synopsis)el("dsyn").innerHTML=esc(info.synopsis).replace(/\n+/g,"<br><br>");
+    if(el("dsyn")){const own=(metaOver()[b.id]||{}).syn;
+      if(own)el("dsyn").innerHTML=esc(own).replace(/\n+/g,"<br><br>")+'<div class="src">Sinopsis escrita por ustedes</div>';
+      else if(info.synopsis)el("dsyn").innerHTML=esc(info.synopsis).replace(/\n+/g,"<br><br>");
       else if(info.neterr)el("dsyn").innerHTML='<span class="muted">No se pudo conectar a Internet para traer la sinopsis.</span> <button class="linkbtn" data-act="retry">Reintentar</button><div class="src">Si abriste el archivo directamente, algunos teléfonos bloquean la búsqueda. Funciona mejor con conexión y desde un enlace web.</div>';
       else el("dsyn").innerHTML='<span class="muted">No se encontró una sinopsis en línea para este título.</span> <a class="linkbtn" href="'+gsearch+'" target="_blank" rel="noopener">Buscar en Google</a>'}
     let src=[];if(info.year)src.push("Publicado: "+info.year);if(info.link)src.push('<a href="'+info.link+'" target="_blank" rel="noopener">Google Books</a>');if(el("dsrc"))el("dsrc").innerHTML=src.join(" · ")});
@@ -584,7 +605,7 @@ function setView(v){state.view=v;document.querySelectorAll(".view").forEach(s=>s
   document.querySelectorAll("nav.tabs button").forEach(btn=>btn.classList.toggle("on",btn.dataset.view===v));
   el("searchWrap").style.display=v==="explorar"?"block":"none";el("catbar").style.display=v==="explorar"?"block":"none";
   if(v==="explorar"){render()}else{el("totalNum").textContent=TOTAL;el("totalLbl").textContent="libros"}
-  if(v==="autores")renderAuthors();if(v==="mapa")renderMap();if(v==="metricas"){renderMetrics();renderYears()}window.scrollTo(0,0)}
+  if(v==="autores")renderAuthors();if(v==="mapa")renderMap();if(v==="red")startRed();else stopRed();if(v==="metricas"){renderMetrics();renderYears()}window.scrollTo(0,0)}
 
 /* ---- events ---- */
 const qEl=el("q"),clearEl=el("clear");
@@ -606,7 +627,7 @@ el("detail").addEventListener("click",async e=>{
   const ct=e.target.closest("[data-cat]");if(ct){state.cat=ct.dataset.cat;state.author="";state.q="";qEl.value="";render();closeDetail();setView("explorar");return}
   const ob=e.target.closest("[data-openbook]");if(ob){openDetail(+ob.dataset.openbook);return}
   const ea=e.target.closest("[data-explore-author]");if(ea){state.author=ea.dataset.exploreAuthor;state.cat="";state.q="";qEl.value="";render();closeDetail();setView("explorar");return}
-  const act=e.target.closest("[data-act]");if(act){const A=act.dataset.act;if(A==="rec")el("recInput").click();else if(A==="share")shareBook(BOOKS[CURRENT]);else if(A==="retry"){delete CACHE["gb:"+CURRENT];saveCache();const b=BOOKS[CURRENT];if(el("dsyn"))el("dsyn").innerHTML='<span class="spinner"></span>Reintentando…';lookupBook(b,true).then(info=>{if(el("dsyn"))el("dsyn").innerHTML=info.synopsis?esc(info.synopsis).replace(/\n+/g,"<br><br>"):(info.neterr?'<span class="muted">Sigue sin conexión.</span>':'<span class="muted">Sin sinopsis en línea.</span>');const cv=el("dcover");if(cv&&info.cover){cv.style.background="url('"+info.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}})}else if(A==="retrybio"){const nm=firstAuthor(BOOKS[CURRENT].a);delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"retrybio")})}else if(A==="authbio"){const nm=CUR_AUTHOR;delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"authbio")})}else if(A==="yt"){setYT(BOOKS[CURRENT])}else if(A==="editcat"){editCat(BOOKS[CURRENT])}else if(A==="edityear"){editYear(BOOKS[CURRENT])}else if(A==="setcover"){PENDCOVER=BOOKS[CURRENT];el("coverShot").click()}return}
+  const act=e.target.closest("[data-act]");if(act){const A=act.dataset.act;if(A==="rec")el("recInput").click();else if(A==="share")shareBook(BOOKS[CURRENT]);else if(A==="retry"){delete CACHE["gb:"+CURRENT];saveCache();const b=BOOKS[CURRENT];if(el("dsyn"))el("dsyn").innerHTML='<span class="spinner"></span>Reintentando…';lookupBook(b,true).then(info=>{if(el("dsyn"))el("dsyn").innerHTML=info.synopsis?esc(info.synopsis).replace(/\n+/g,"<br><br>"):(info.neterr?'<span class="muted">Sigue sin conexión.</span>':'<span class="muted">Sin sinopsis en línea.</span>');const cv=el("dcover");if(cv&&info.cover){cv.style.background="url('"+info.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}})}else if(A==="retrybio"){const nm=firstAuthor(BOOKS[CURRENT].a);delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"retrybio")})}else if(A==="authbio"){const nm=CUR_AUTHOR;delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"authbio")})}else if(A==="yt"){setYT(BOOKS[CURRENT])}else if(A==="editcat"){editCat(BOOKS[CURRENT])}else if(A==="edityear"){editYear(BOOKS[CURRENT])}else if(A==="editmeta"){editMeta(BOOKS[CURRENT])}else if(A==="editsyn"){editSyn(BOOKS[CURRENT])}else if(A==="setcover"){PENDCOVER=BOOKS[CURRENT];el("coverShot").click()}return}
   const sh=e.target.closest("[data-share]");if(sh){shareVideo(+sh.dataset.share,BOOKS[CURRENT]);return}
   const dl=e.target.closest("[data-del]");if(dl){if(confirm("¿Eliminar este video?")){await idbDel(+dl.dataset.del);await refreshVidBooks();renderVideos(BOOKS[CURRENT]);render()}return}});
 el("recInput").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f||CURRENT==null)return;
@@ -674,12 +695,14 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
   '<div class="fld"><label>Token (fine-grained, solo este repo, permiso Contents: Read and write)</label><input id="s_token" class="in" type="password" placeholder="'+(ghToken()?"•••• guardado ••••":"github_pat_…")+'"></div>'+
   '<div class="dbtns"><button class="btn" id="s_save">Guardar</button><button class="btn ghost" id="s_test">Probar conexión</button></div><p class="src" id="s_msg"></p>'+
   '<section><h3>Aplicación</h3>'+
-    '<p class="src">Versión instalada: <b>2026.07.24-0330</b></p>'+
-    '<div class="dbtns"><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button></div>'+
+    '<p class="src">Versión instalada: <b>2026.07.24-0352</b></p>'+
+    '<div class="dbtns"><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button></div><div class="src" id="diagOut"></div>'+
     '<p class="src">La app se actualiza sola al abrirla con conexión. Si algo no se ve nuevo, toca “Buscar actualizaciones”.</p></section>';
   openModal2();
   el("s_save").onclick=()=>{try{localStorage.setItem("gh_owner",el("s_owner").value.trim());localStorage.setItem("gh_repo",el("s_repo").value.trim());localStorage.setItem("gh_branch",el("s_branch").value.trim()||"main");const tk=el("s_token").value.trim();if(tk)localStorage.setItem("gh_token",tk);GH.owner=el("s_owner").value.trim();GH.repo=el("s_repo").value.trim();GH.branch=el("s_branch").value.trim()||"main";el("s_msg").textContent="Guardado.";toast("Ajustes guardados.")}catch(e){el("s_msg").textContent="No se pudo guardar."}};
   el("s_upd").onclick=forceUpdate;
+  el("s_diag").onclick=async()=>{el("diagOut").innerHTML="Probando…";const r=await diagnose();
+    el("diagOut").innerHTML="<b>Diagnóstico</b><br>"+r.map(x=>"• "+esc(x)).join("<br>")};
   el("s_install").onclick=async()=>{if(DEFERRED){DEFERRED.prompt();try{await DEFERRED.userChoice}catch(e){}DEFERRED=null}
     else alert("En Android: menú del navegador → “Instalar aplicación”.\nEn iPhone: botón Compartir → “Añadir a pantalla de inicio”.")};
   el("s_test").onclick=async()=>{el("s_msg").textContent="Probando…";const ok=await ghTest();el("s_msg").textContent=ok?"Conexión OK, con permiso de escritura.":"No se pudo (revisa usuario/repo/token y su acceso a ese repo)."}}
@@ -698,6 +721,7 @@ if(GH.owner&&GH.repo){fetch('https://raw.githubusercontent.com/'+GH.owner+'/'+GH
    if(j.ytOver){try{const cur=ytOver();localStorage.setItem("yt_over",JSON.stringify(Object.assign({},j.ytOver,cur)))}catch(e){}}
    if(j.coverOver){try{const cur=coverOverStore();saveCoverOver(Object.assign({},j.coverOver,cur))}catch(e){}}
    if(j.yearOver){try{const cur=yearOver();localStorage.setItem("year_over",JSON.stringify(Object.assign({},j.yearOver,cur)))}catch(e){}}
+   if(j.metaOver){try{const cur=metaOver();saveMeta(Object.assign({},j.metaOver,cur));applyMetaOver()}catch(e){}}
    rebuildUI()}}).catch(()=>{})}
 
 
@@ -761,7 +785,7 @@ function editCat(b){const cur=b.c||"";
 async function ghSyncAll(){const tk=ghToken();if(!tk||!GH.owner||!GH.repo)return;
   const api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/books.json';
   try{let sha=null;const r=await fetch(api+'?ref='+GH.branch,{headers:{Authorization:'Bearer '+tk}});if(r.ok){const j=await r.json();sha=j.sha}
-    const payload={added:loadAdds(),catOver:catOver(),ytOver:ytOver(),coverOver:coverOverStore(),yearOver:yearOver()};
+    const payload={added:loadAdds(),catOver:catOver(),ytOver:ytOver(),coverOver:coverOverStore(),yearOver:yearOver(),metaOver:metaOver()};
     const body={message:'Actualizar biblioteca',content:btoa(unescape(encodeURIComponent(JSON.stringify(payload,null,2)))),branch:GH.branch};if(sha)body.sha=sha;
     const put=await fetch(api,{method:'PUT',headers:{Authorization:'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(put.ok)toast("Guardado en línea.");else{const e=await put.json().catch(()=>({}));toast("GitHub: "+(e.message||put.status))}}catch(e){toast("Sin conexión con GitHub.")}}
@@ -928,6 +952,160 @@ async function forceUpdate(){try{
   setTimeout(()=>location.reload(true),700)}
 var DEFERRED=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();DEFERRED=e;const b=el("installBtn");if(b)b.style.display="block"});
+
+
+/* ===== correcciones manuales de título/autor/sinopsis ===== */
+function metaOver(){try{return JSON.parse(localStorage.getItem("meta_over")||"{}")}catch(e){return{}}}
+function saveMeta(o){try{localStorage.setItem("meta_over",JSON.stringify(o))}catch(e){}}
+function applyMetaOver(){const o=metaOver();if(!Object.keys(o).length)return;
+  BOOKS.forEach(b=>{const m=o[b.id];if(!m)return;if(m.t)b.t=m.t;if(m.a!=null)b.a=m.a});deriveData()}
+function editMeta(b){
+  const t=prompt("Título del libro (corrígelo si quedó mal leído):",b.t||"");
+  if(t==null)return;
+  const a=prompt("Autor o autores (separa con comas si son varios):",b.a||"");
+  if(a==null)return;
+  const o=metaOver();const m=o[b.id]||{};
+  if(t.trim())m.t=t.trim();
+  m.a=a.trim();
+  o[b.id]=m;saveMeta(o);
+  b.t=m.t||b.t;b.a=m.a;
+  if(b.n==="Confirmar autor"||b.n==="Confirmar título"||b.n==="Confirmar")b.n="";
+  deriveData();rebuildUI();openDetail(b.i);toast("Datos corregidos.");ghSyncAll()}
+function editSyn(b){const o=metaOver();const cur=(o[b.id]||{}).syn||(CACHE["gb:"+b.i]||{}).synopsis||"";
+  const v=prompt("Escribe la sinopsis de “"+b.t+"” (queda guardada y se comparte):",cur);
+  if(v==null)return;const m=o[b.id]||{};
+  if(v.trim())m.syn=v.trim(); else delete m.syn;
+  o[b.id]=m;saveMeta(o);openDetail(b.i);toast("Sinopsis guardada.");ghSyncAll()}
+
+/* ===== mapa de conexiones (red) ===== */
+const STOP=new Set(("de la el los las un una unos unas y o que en para con por del al se su sus es son era como mas más sobre este esta estos estas entre cuando todo toda todos todas nos lo si no ya ha han muy sin pero te tu mi me le les hay ser fue eres cual donde desde hasta tambien también asi así aunque porque cada otro otra otros otras mismo misma puede pueden hacer hace hacia ante tras ese esa eso aquel cualquier libro libros autor autora edicion edición obra paginas páginas the of and to in a for is on with your you this that how what why who from it its an be are we our will can new york times bestseller best seller").split(" "));
+function tokens(txt){return norm(txt||"").replace(/[^a-z0-9ñ\s]/g," ").split(/\s+/)
+  .filter(w=>w.length>3&&!STOP.has(w))}
+var RED={nodes:[],links:[],raf:null,sel:null,drag:null,mode:"words",cv:null,ctx:null,W:0,H:0,dpr:1};
+function buildRed(mode){
+  const nodes=[],links=[],idx={};
+  if(mode==="authors"){
+    const top=AUTH_COUNT.slice(0,45);
+    top.forEach(a=>{idx[a]=nodes.length;nodes.push({id:a,label:a,w:AUTH[a].length,type:"a"})});
+    const byCat={};
+    top.forEach(a=>{AUTH[a].forEach(i=>{const c=BOOKS[i].c;(byCat[c]=byCat[c]||new Set()).add(a)})});
+    Object.keys(byCat).forEach(c=>{const arr=[...byCat[c]];
+      for(let i=0;i<arr.length;i++)for(let j=i+1;j<arr.length;j++)links.push([idx[arr[i]],idx[arr[j]],1])});
+  }else{
+    const freq={},docs=[];
+    BOOKS.forEach(b=>{const syn=(metaOver()[b.id]||{}).syn||(CACHE["gb:"+b.i]||{}).synopsis||"";
+      const ws=new Set(tokens(b.t+" "+b.c+" "+syn.slice(0,600)));
+      docs.push({b:b,ws:ws});ws.forEach(w=>freq[w]=(freq[w]||0)+1)});
+    const top=Object.keys(freq).filter(w=>freq[w]>=3).sort((a,b)=>freq[b]-freq[a]).slice(0,55);
+    const T=new Set(top);
+    top.forEach(w=>{idx[w]=nodes.length;nodes.push({id:w,label:w,w:freq[w],type:"w"})});
+    const pair={};
+    docs.forEach(d=>{const ws=[...d.ws].filter(w=>T.has(w));
+      for(let i=0;i<ws.length;i++)for(let j=i+1;j<ws.length;j++){const k=ws[i]<ws[j]?ws[i]+"|"+ws[j]:ws[j]+"|"+ws[i];pair[k]=(pair[k]||0)+1}});
+    Object.keys(pair).filter(k=>pair[k]>=2).sort((a,b)=>pair[b]-pair[a]).slice(0,180)
+      .forEach(k=>{const[p,q]=k.split("|");links.push([idx[p],idx[q],pair[k]])});
+  }
+  const R=Math.min(RED.W,RED.H)*0.36||150;
+  nodes.forEach((n,i)=>{const a=2*Math.PI*i/nodes.length;
+    n.x=RED.W/2+Math.cos(a)*R*(0.6+0.4*Math.random());
+    n.y=RED.H/2+Math.sin(a)*R*(0.6+0.4*Math.random());n.vx=0;n.vy=0;
+    n.r=Math.max(5,Math.min(19,4+Math.sqrt(n.w)*2.6))});
+  RED.nodes=nodes;RED.links=links;RED.sel=null}
+function stepRed(){const N=RED.nodes,L=RED.links;
+  for(let i=0;i<N.length;i++){const a=N[i];
+    for(let j=i+1;j<N.length;j++){const b=N[j];
+      let dx=b.x-a.x,dy=b.y-a.y,d2=dx*dx+dy*dy;if(d2<1)d2=1;
+      const d=Math.sqrt(d2);const f=2400/d2;
+      const fx=dx/d*f,fy=dy/d*f;a.vx-=fx;a.vy-=fy;b.vx+=fx;b.vy+=fy}}
+  L.forEach(l=>{const a=N[l[0]],b=N[l[1]];if(!a||!b)return;
+    const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1;
+    const f=(d-70)*0.012*Math.min(2,l[2]);
+    const fx=dx/d*f,fy=dy/d*f;a.vx+=fx;a.vy+=fy;b.vx-=fx;b.vy-=fy});
+  N.forEach(n=>{n.vx+=(RED.W/2-n.x)*0.004;n.vy+=(RED.H/2-n.y)*0.004;
+    if(RED.drag===n){n.vx=n.vy=0;return}
+    n.vx*=0.82;n.vy*=0.82;n.x+=Math.max(-6,Math.min(6,n.vx));n.y+=Math.max(-6,Math.min(6,n.vy));
+    n.x=Math.max(n.r+2,Math.min(RED.W-n.r-2,n.x));n.y=Math.max(n.r+2,Math.min(RED.H-n.r-2,n.y))})}
+function drawRed(){const c=RED.ctx;if(!c)return;const N=RED.nodes;
+  c.clearRect(0,0,RED.W,RED.H);
+  const selIdx=RED.sel!=null?RED.sel:-1;
+  const nb=new Set();if(selIdx>=0)RED.links.forEach(l=>{if(l[0]===selIdx)nb.add(l[1]);if(l[1]===selIdx)nb.add(l[0])});
+  RED.links.forEach(l=>{const a=N[l[0]],b=N[l[1]];if(!a||!b)return;
+    const on=selIdx<0||l[0]===selIdx||l[1]===selIdx;
+    c.strokeStyle=on?"rgba(185,119,42,.55)":"rgba(23,34,59,.07)";
+    c.lineWidth=on?1.5:0.8;c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke()});
+  N.forEach((n,i)=>{const on=selIdx<0||i===selIdx||nb.has(i);
+    c.beginPath();c.arc(n.x,n.y,n.r,0,6.2832);
+    c.fillStyle=i===selIdx?"#B9772A":(on?"#3B4763":"rgba(59,71,99,.22)");c.fill();
+    if(on&&(n.r>8||i===selIdx)){c.fillStyle=i===selIdx?"#17223B":"rgba(23,34,59,.75)";
+      c.font=(i===selIdx?"600 ":"")+Math.max(10,Math.min(13,n.r))+"px Inter, sans-serif";
+      c.textAlign="center";c.fillText(n.label,n.x,n.y-n.r-4)}})}
+function loopRed(){stepRed();drawRed();RED.raf=requestAnimationFrame(loopRed)}
+function sizeRed(){const cv=RED.cv;if(!cv)return;const r=cv.parentNode.getBoundingClientRect();
+  RED.dpr=Math.min(2,window.devicePixelRatio||1);RED.W=Math.max(240,r.width);RED.H=400;
+  cv.width=RED.W*RED.dpr;cv.height=RED.H*RED.dpr;cv.style.height=RED.H+"px";
+  RED.ctx=cv.getContext("2d");RED.ctx.setTransform(RED.dpr,0,0,RED.dpr,0,0)}
+function startRed(){const cv=el("redCv");if(!cv)return;RED.cv=cv;sizeRed();
+  if(!RED.nodes.length||RED._mode!==RED.mode){RED._mode=RED.mode;buildRed(RED.mode==="authors"?"authors":"words")}
+  el("redSub").textContent=RED.nodes.length+(RED.mode==="authors"?" autores":" palabras")+" · "+RED.links.length+" conexiones · toca un punto";
+  if(!RED.nodes.length)el("redInfo").innerHTML='<div class="rcard">Aún no hay datos suficientes. Ve a <b>Métricas</b> y toca “Cargar portadas y datos” para traer las sinopsis, y el mapa se llenará.</div>';
+  if(!RED.raf)loopRed()}
+function stopRed(){if(RED.raf){cancelAnimationFrame(RED.raf);RED.raf=null}}
+function hitRed(x,y){for(let i=RED.nodes.length-1;i>=0;i--){const n=RED.nodes[i];
+  if((x-n.x)**2+(y-n.y)**2<=(n.r+9)**2)return i}return -1}
+function redPos(ev){const r=RED.cv.getBoundingClientRect();
+  const t=ev.touches&&ev.touches[0]?ev.touches[0]:ev;
+  return{x:t.clientX-r.left,y:t.clientY-r.top}}
+function redSelect(i){RED.sel=i;const n=RED.nodes[i];if(!n){el("redInfo").innerHTML="";return}
+  const nb=[];RED.links.forEach(l=>{if(l[0]===i)nb.push(RED.nodes[l[1]]);if(l[1]===i)nb.push(RED.nodes[l[0]])});
+  nb.sort((a,b)=>b.w-a.w);
+  if(n.type==="a"){
+    const ids=AUTH[n.id]||[];
+    el("redInfo").innerHTML='<div class="rcard"><h4>'+esc(n.id)+'</h4>'+
+      '<div class="rmeta">'+ids.length+' libro(s) · conectado con '+nb.length+' autores por temática</div>'+
+      '<div class="chipline">'+nb.slice(0,10).map(x=>'<span class="rchip" data-rnode="'+esc(x.id)+'">'+esc(x.id)+'</span>').join("")+'</div>'+
+      '<button class="btn" data-rauthor="'+esc(n.id)+'">Ver su perfil y sus libros</button></div>'}
+  else{
+    const hits=BOOKS.filter(b=>{const syn=(metaOver()[b.id]||{}).syn||(CACHE["gb:"+b.i]||{}).synopsis||"";
+      return norm(b.t+" "+b.c+" "+syn).includes(n.id)});
+    const auth={};hits.forEach(b=>splitAuthors(b.a).forEach(a=>auth[a]=(auth[a]||0)+1));
+    const tops=Object.keys(auth).sort((a,b)=>auth[b]-auth[a]).slice(0,6);
+    el("redInfo").innerHTML='<div class="rcard"><h4>'+esc(n.id)+'</h4>'+
+      '<div class="rmeta">Aparece en '+hits.length+' libros · se conecta con '+nb.length+' palabras</div>'+
+      '<div class="chipline">'+nb.slice(0,10).map(x=>'<span class="rchip" data-rnode="'+esc(x.id)+'">'+esc(x.id)+'</span>').join("")+'</div>'+
+      (tops.length?'<div class="rmeta">Autores más ligados: '+tops.map(a=>'<span class="rchip" data-rauthor2="'+esc(a)+'">'+esc(a)+' ('+auth[a]+')</span>').join(" ")+'</div>':'')+
+      '<button class="btn" data-rsearch="'+esc(n.id)+'">Ver los '+hits.length+' libros</button></div>'}}
+(function(){const cv=el("redCv");if(!cv)return;
+  const down=ev=>{const p=redPos(ev);const i=hitRed(p.x,p.y);
+    if(i>=0){RED.drag=RED.nodes[i];redSelect(i)}else{RED.sel=null;el("redInfo").innerHTML=""}
+    if(i>=0)ev.preventDefault()};
+  const move=ev=>{if(!RED.drag)return;const p=redPos(ev);RED.drag.x=p.x;RED.drag.y=p.y;ev.preventDefault()};
+  const up=()=>{RED.drag=null};
+  cv.addEventListener("mousedown",down);cv.addEventListener("touchstart",down,{passive:false});
+  window.addEventListener("mousemove",move);cv.addEventListener("touchmove",move,{passive:false});
+  window.addEventListener("mouseup",up);cv.addEventListener("touchend",up);
+  window.addEventListener("resize",()=>{if(state.view==="red"){sizeRed()}});
+  el("rWords").onclick=()=>{RED.mode="words";el("rWords").classList.add("on");el("rAuth").classList.remove("on");el("redInfo").innerHTML="";startRed()};
+  el("rAuth").onclick=()=>{RED.mode="authors";el("rAuth").classList.add("on");el("rWords").classList.remove("on");el("redInfo").innerHTML="";startRed()};
+  el("redInfo").addEventListener("click",e=>{
+    const c=e.target.closest("[data-rnode]");if(c){const i=RED.nodes.findIndex(n=>n.id===c.dataset.rnode);if(i>=0)redSelect(i);return}
+    const a=e.target.closest("[data-rauthor]");if(a){openAuthor(a.dataset.rauthor);return}
+    const a2=e.target.closest("[data-rauthor2]");if(a2){openAuthor(a2.dataset.rauthor2);return}
+    const sq=e.target.closest("[data-rsearch]");if(sq){const q=sq.dataset.rsearch;
+      state.q=q;const qi=el("q");if(qi)qi.value=q;state.cat="";state.author="";state.ed="";state.dec="";
+      const cl=el("clear");if(cl)cl.classList.add("show");render();setView("explorar")}})})();
+/* ===== diagnóstico en Ajustes ===== */
+async function diagnose(){const out=[];
+  try{const r=await fetch('https://www.googleapis.com/books/v1/volumes?q=intitle:neuromarketing&maxResults=1&country=US');
+    out.push((r.ok?"OK":"falla "+r.status)+" · Google Books (sinopsis y portadas)")}catch(e){out.push("sin acceso · Google Books")}
+  try{const r=await fetch('https://openlibrary.org/search.json?limit=1&title=neuromarketing');
+    out.push((r.ok?"OK":"falla "+r.status)+" · Open Library")}catch(e){out.push("sin acceso · Open Library")}
+  try{const r=await fetch('https://es.wikipedia.org/api/rest_v1/page/summary/Colombia');
+    out.push((r.ok?"OK":"falla "+r.status)+" · Wikipedia (biografías)")}catch(e){out.push("sin acceso · Wikipedia")}
+  const tk=ghToken();out.push((tk?(await ghTest()?"OK · GitHub con permiso de escritura":"token inválido o sin permiso · GitHub"):"sin token · GitHub (las portadas y correcciones no se comparten)"));
+  const nc=BOOKS.filter(b=>(CACHE["gb:"+b.i]||{}).synopsis).length;
+  out.push(nc+" de "+BOOKS.length+" libros ya tienen sinopsis guardada");
+  return out}
+applyMetaOver();rebuildUI();
 
 </script>
 </body>
