@@ -206,7 +206,7 @@ textarea.in{font-family:inherit;line-height:1.45;resize:vertical}
 
 body.ro #addBtn,body.ro [data-act="editmeta"],body.ro [data-act="editsyn"],body.ro [data-act="edityear"],
 body.ro [data-act="editcat"],body.ro [data-act="setcover"],body.ro [data-act="rec"],body.ro [data-act="yt"],
-body.ro #newShelfBtn,body.ro #shelfNewPhoto{display:none !important}
+body.ro #newShelfBtn,body.ro #shelfNewPhoto,body.ro [data-act="ai"],body.ro [data-act="aibio"],body.ro #aiBulk{display:none !important}
 </style>
 </head>
 <body>
@@ -299,6 +299,7 @@ body.ro #newShelfBtn,body.ro #shelfNewPhoto{display:none !important}
     <div class="enrich"><h3 style="margin:0 0 8px;font-size:16px;font-weight:600">Portadas, sinopsis y años</h3>
       <p>Trae de Internet (Google Books) las portadas, sinopsis y años de todos los libros y los guarda para que se vean al instante. Tarda un poco y necesita conexión (mejor con la app ya en un enlace web).</p>
       <button class="btn" id="enrichBtn">Cargar portadas y datos</button>
+      <button class="btn ghost" id="aiBulk">✨ Generar sinopsis faltantes con IA</button>
       <p class="src" id="enrStat"></p>
       <div class="prog" id="prog"><div class="pfill" id="pfill"></div></div>
       <div id="mByYear" style="margin-top:14px"></div>
@@ -401,7 +402,7 @@ function render(){const rows=filtered(),q=state.q.trim();
   el("empty").hidden=rows.length>0;el("list").hidden=rows.length===0;
   el("list").innerHTML=rows.map(b=>{const col=color(b.c);
     const au=b.a?'<div class="author">'+hl(b.a,q)+'</div>':'<div class="author none">Autor por confirmar</div>';
-    const ed=b.e?'<span class="tag">'+esc(b.e)+'</span>':'';const ft=b.f?'<span class="tag">Foto '+b.f+' · lugar '+b.p+'</span>':'';
+    const ed=b.e?'<span class="tag">'+esc(b.e)+'</span>':'';const ft='';
     const cd='<span class="tag code">'+esc(b.id)+'</span>';
     const fl=b.n?'<span class="tag flag">'+esc(b.n)+'</span>':'';const vd=VIDBOOKS.has(b.i)?'<span class="tag vid">▶ video</span>':'';
     const cov=COVERS[b.id]||COVEROVER[b.id]||(CACHE["gb:"+b.i]||{}).cover||b.cover||"";
@@ -571,7 +572,7 @@ function openDetail(i){CURRENT=i;CUR_AUTHOR=null;const b=BOOKS[i];const col=colo
       '<h2>'+esc(b.t)+'</h2><div class="by">'+byline+'</div><div class="facts">'+facts+'</div>'+
       '<div class="dbtns"><button class="btn" data-act="share">Compartir libro</button><button class="btn ghost" data-act="setcover">\uD83D\uDDBC Cambiar portada</button><button class="btn ghost" data-act="editmeta">✎ Corregir título / autor</button></div></div></div>'+
     '<section><h3>Sinopsis</h3><div class="body" id="dsyn"><span class="spinner"></span>Buscando en Internet…</div>'+
-      '<button class="btn ghost" data-act="editsyn" style="margin-top:10px">✎ Escribir / corregir sinopsis</button></section>'+
+      '<div class="dbtns" style="margin-top:10px"><button class="btn ghost" data-act="ai">✨ Generar con IA</button><button class="btn ghost" data-act="editsyn">✎ Escribir / corregir</button></div></section>'+
     (b.a?'<section><h3>Sobre el autor</h3><div class="body" id="dbio"><span class="spinner"></span>Buscando biografía…</div></section>':'')+
     '<section><h3>¿Dónde conseguirlo?</h3><div class="buy">'+
       '<a class="buybtn" target="_blank" rel="noopener" href="https://www.google.com/search?tbm=bks&q='+enc+'">Google Books</a>'+
@@ -693,7 +694,7 @@ el("detail").addEventListener("click",async e=>{
   const ct=e.target.closest("[data-cat]");if(ct){state.cat=ct.dataset.cat;state.author="";state.q="";qEl.value="";render();closeDetail();setView("explorar");return}
   const ob=e.target.closest("[data-openbook]");if(ob){openDetail(+ob.dataset.openbook);return}
   const ea=e.target.closest("[data-explore-author]");if(ea){state.author=ea.dataset.exploreAuthor;state.cat="";state.q="";qEl.value="";render();closeDetail();setView("explorar");return}
-  const act=e.target.closest("[data-act]");if(act){const A=act.dataset.act;if(A==="rec")el("recInput").click();else if(A==="share")shareBook(BOOKS[CURRENT]);else if(A==="retry"){delete CACHE["gb:"+CURRENT];saveCache();const b=BOOKS[CURRENT];if(el("dsyn"))el("dsyn").innerHTML='<span class="spinner"></span>Reintentando…';lookupBook(b,true).then(info=>{if(el("dsyn"))el("dsyn").innerHTML=info.synopsis?esc(info.synopsis).replace(/\n+/g,"<br><br>"):(info.neterr?'<span class="muted">Sigue sin conexión.</span>':'<span class="muted">Sin sinopsis en línea.</span>');const cv=el("dcover");if(cv&&info.cover){cv.style.background="url('"+info.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}})}else if(A==="retrybio"){const nm=firstAuthor(BOOKS[CURRENT].a);delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"retrybio")})}else if(A==="authbio"){const nm=CUR_AUTHOR;delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"authbio")})}else if(A==="yt"){setYT(BOOKS[CURRENT])}else if(A==="editcat"){editCat(BOOKS[CURRENT])}else if(A==="edityear"){editYear(BOOKS[CURRENT])}else if(A==="editmeta"){editMeta(BOOKS[CURRENT])}else if(A==="coverurl"){coverByURL(BOOKS[CURRENT])}else if(A==="editsyn"){editSyn(BOOKS[CURRENT])}else if(A==="setcover"){coverMenu(BOOKS[CURRENT])}return}
+  const act=e.target.closest("[data-act]");if(act){const A=act.dataset.act;if(A==="rec")el("recInput").click();else if(A==="share")shareBook(BOOKS[CURRENT]);else if(A==="retry"){delete CACHE["gb:"+CURRENT];saveCache();const b=BOOKS[CURRENT];if(el("dsyn"))el("dsyn").innerHTML='<span class="spinner"></span>Reintentando…';lookupBook(b,true).then(info=>{if(el("dsyn"))el("dsyn").innerHTML=info.synopsis?esc(info.synopsis).replace(/\n+/g,"<br><br>"):(info.neterr?'<span class="muted">Sigue sin conexión.</span>':'<span class="muted">Sin sinopsis en línea.</span>');const cv=el("dcover");if(cv&&info.cover){cv.style.background="url('"+info.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}})}else if(A==="retrybio"){const nm=firstAuthor(BOOKS[CURRENT].a);delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"retrybio")})}else if(A==="authbio"){const nm=CUR_AUTHOR;delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"authbio")})}else if(A==="yt"){setYT(BOOKS[CURRENT])}else if(A==="editcat"){editCat(BOOKS[CURRENT])}else if(A==="edityear"){editYear(BOOKS[CURRENT])}else if(A==="editmeta"){editMeta(BOOKS[CURRENT])}else if(A==="coverurl"){coverByURL(BOOKS[CURRENT])}else if(A==="editsyn"){editSyn(BOOKS[CURRENT])}else if(A==="ai"){aiSynopsis(BOOKS[CURRENT])}else if(A==="aibio"){aiBio(firstAuthor(BOOKS[CURRENT].a),BOOKS[CURRENT])}else if(A==="setcover"){coverMenu(BOOKS[CURRENT])}return}
   const sh=e.target.closest("[data-share]");if(sh){shareVideo(+sh.dataset.share,BOOKS[CURRENT]);return}
   const dl=e.target.closest("[data-del]");if(dl){if(confirm("¿Eliminar este video?")){await idbDel(+dl.dataset.del);await refreshVidBooks();renderVideos(BOOKS[CURRENT]);render()}return}});
 el("recInput").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f||CURRENT==null)return;
@@ -764,13 +765,24 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
     '<p class="src">'+(ghToken()?'Hay un token guardado. Si falla, pega uno nuevo aquí. <button class="linkbtn" id="s_del">Borrar token</button>':'Debe ser <b>fine-grained</b>, con acceso <b>solo a este repositorio</b> y permiso <b>Contents: Read and write</b>.')+'</p>'+
     '<p class="src"><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener"><b>Abrir GitHub para crear el token →</b></a></p></div>'+
   '<div class="dbtns"><button class="btn" id="s_save">Guardar</button><button class="btn ghost" id="s_test">Probar conexión</button></div><p class="src" id="s_msg"></p>'+
+  '<section><h3>Inteligencia artificial (sinopsis y biografías)</h3>'+
+    '<p class="src">Con una clave de Anthropic, la app puede redactar las sinopsis y biografías que no están en ninguna base de datos. La clave se guarda solo en este teléfono.</p>'+
+    '<div class="fld"><label>Clave de API de Anthropic</label><input id="s_ai" class="in" type="password" autocomplete="off" placeholder="'+(aiKey()?"•••• guardada ••••":"sk-ant-…")+'">'+
+      '<p class="src"><a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener"><b>Obtener una clave →</b></a> · Modelo: <input id="s_aimodel" class="in" style="display:inline-block;width:auto;padding:4px 8px;font-size:13px" value="'+esc(aiModel())+'"></p></div>'+
+    '<div class="dbtns"><button class="btn" id="s_aisave">Guardar clave</button><button class="btn ghost" id="s_aitest">Probar IA</button></div><p class="src" id="aiMsg"></p></section>'+
   '<section><h3>Aplicación</h3>'+
-    '<p class="src">Versión instalada: <b>2026.07.24-0615</b></p>'+
+    '<p class="src">Versión instalada: <b>2026.07.24-0644</b></p>'+
     '<p class="src" id="syncState"></p><div class="dbtns"><button class="btn" id="s_pub">Publicar todo ahora</button><button class="btn ghost" id="s_meta">Publicar sinopsis y portadas</button><button class="btn ghost" id="s_share">Compartir la biblioteca</button><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button></div><div class="src" id="diagOut"></div>'+
     '<p class="src">La app se actualiza sola al abrirla con conexión. Si algo no se ve nuevo, toca “Buscar actualizaciones”.</p></section>';
   openModal2();
   el("s_save").onclick=()=>{try{localStorage.setItem("gh_owner",el("s_owner").value.trim());localStorage.setItem("gh_repo",el("s_repo").value.trim());localStorage.setItem("gh_branch",el("s_branch").value.trim()||"main");const tk=el("s_token").value.trim();if(tk)localStorage.setItem("gh_token",tk);GH.owner=el("s_owner").value.trim();GH.repo=el("s_repo").value.trim();GH.branch=el("s_branch").value.trim()||"main";el("s_msg").textContent="Guardado.";toast("Ajustes guardados.")}catch(e){el("s_msg").textContent="No se pudo guardar."}};
   (function(){const d=el("s_del");if(d)d.onclick=()=>{try{localStorage.removeItem("gh_token")}catch(e){}toast("Token borrado.");openSettings()}})();
+  el("s_aisave").onclick=()=>{const k=el("s_ai").value.trim();const m=el("s_aimodel").value.trim();
+    try{if(k)localStorage.setItem("ai_key",k);if(m)localStorage.setItem("ai_model",m)}catch(e){}
+    el("aiMsg").textContent="Clave guardada.";toast("Clave de IA guardada.")};
+  el("s_aitest").onclick=async()=>{const k=el("s_ai").value.trim();if(k){try{localStorage.setItem("ai_key",k)}catch(e){}}
+    el("aiMsg").textContent="Probando…";const r=await aiAsk("Responde solamente: OK");
+    el("aiMsg").innerHTML=r.ok?'<b style="color:#2E8B7B">✓ IA conectada.</b>':'<b style="color:#C0642F">✗ </b>'+esc(r.error)};
   el("s_pub").onclick=publishAll;
   el("s_meta").onclick=publishMeta;
   el("s_share").onclick=shareApp;
@@ -1674,6 +1686,75 @@ function readOnly(){try{if(localStorage.getItem("allow_edit")==="1")return false
   return !syncOn()}
 function applyReadOnly(){const ro=readOnly();
   document.body.classList.toggle("ro",ro)}
+
+
+/* ===== IA: sinopsis y biografías ===== */
+function aiKey(){try{return localStorage.getItem("ai_key")||""}catch(e){return""}}
+function aiModel(){try{return localStorage.getItem("ai_model")||"claude-haiku-4-5-20251001"}catch(e){return"claude-haiku-4-5-20251001"}}
+async function aiAsk(prompt,maxTok){const k=aiKey();
+  if(!k)return{ok:false,error:"Falta la clave de IA (⚙ Ajustes)."};
+  try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",
+      headers:{"content-type":"application/json","x-api-key":k,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:aiModel(),max_tokens:maxTok||400,messages:[{role:"user",content:prompt}]})});
+    if(r.status===401)return{ok:false,error:"Clave inválida (401)."};
+    if(r.status===429)return{ok:false,error:"Demasiadas peticiones (429). Espera un momento."};
+    if(r.status===400){const j=await r.json().catch(()=>({}));return{ok:false,error:(j.error&&j.error.message)||"Petición inválida (revisa el nombre del modelo)."}}
+    if(!r.ok)return{ok:false,error:"Error "+r.status+" de la API."};
+    const j=await r.json();
+    const txt=(j.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("\n").trim();
+    return txt?{ok:true,text:txt}:{ok:false,error:"Respuesta vacía."}}
+  catch(e){return{ok:false,error:"Sin conexión con la API de Anthropic."}}}
+function aiPromptBook(b){const y=bookYear(b);
+  return "Eres bibliotecario. Escribe en español una sinopsis del libro siguiente, de 3 a 5 frases, clara y útil para estudiantes universitarios. "+
+    "Describe el tema central, el enfoque del autor y 3 o 4 conceptos clave del libro. No inventes datos: si no conoces el libro con certeza, dilo en una sola frase que empiece con 'NO_CONOCIDO'. "+
+    "No uses viñetas ni títulos, solo el párrafo.\n\n"+
+    "Título: "+b.t+"\nAutor: "+(b.a||"desconocido")+"\nEditorial: "+(b.e||"desconocida")+(y?"\nAño: "+y:"")+"\nTemática en la biblioteca: "+b.c}
+async function aiSynopsis(b){
+  if(!aiKey()){alert("Primero pon tu clave de IA en ⚙ Ajustes → Inteligencia artificial.");return}
+  const box=el("dsyn");if(box)box.innerHTML='<span class="spinner"></span>Redactando con IA…';
+  const r=await aiAsk(aiPromptBook(b),500);
+  if(!r.ok){if(box)box.innerHTML='<span class="muted">'+esc(r.error)+'</span>';return}
+  if(/^NO_CONOCIDO/i.test(r.text)){if(box)box.innerHTML='<span class="muted">La IA no conoce este libro con certeza. Mejor escribe tú la sinopsis.</span>';return}
+  const o=metaOver();const m=o[b.id]||{};m.syn=r.text;m.synAI=1;o[b.id]=m;saveMeta(o);
+  openDetail(b.i);toast("Sinopsis generada. Revísala y corrígela si hace falta.");ghSyncAll()}
+async function aiBio(name,b){
+  if(!aiKey()){alert("Primero pon tu clave de IA en ⚙ Ajustes.");return}
+  const box=el("dbio");if(box)box.innerHTML='<span class="spinner"></span>Redactando con IA…';
+  const r=await aiAsk("Escribe en español una biografía breve (3 o 4 frases) del autor \""+name+"\", que escribió \""+(b?b.t:"")+"\". "+
+    "Incluye nacionalidad, profesión y por qué es conocido. Si no lo conoces con certeza, responde solo 'NO_CONOCIDO'.",300);
+  if(!r.ok){if(box)box.innerHTML='<span class="muted">'+esc(r.error)+'</span>';return}
+  if(/^NO_CONOCIDO/i.test(r.text)){if(box)box.innerHTML='<span class="muted">La IA no conoce a este autor con certeza.</span>';return}
+  CACHE["wk:"+name]={bio:r.text,photo:(CACHE["wk:"+name]||{}).photo||"",link:"",_done:true,ai:1};saveCache();
+  if(box)box.innerHTML=bioHTML(CACHE["wk:"+name],name,"retrybio")+'<div class="src">Biografía generada por IA · verifica los datos</div>';
+  toast("Biografía generada.")}
+async function aiBulk(){
+  if(!aiKey()){alert("Primero pon tu clave de IA en ⚙ Ajustes → Inteligencia artificial.");return}
+  const btn=el("aiBulk");const st=el("enrStat");
+  const pend=BOOKS.filter(b=>!((metaOver()[b.id]||{}).syn||(CACHE["gb:"+b.i]||{}).synopsis));
+  if(!pend.length){if(st)st.textContent="Todos los libros ya tienen sinopsis.";return}
+  if(!confirm("Se van a redactar "+Math.min(25,pend.length)+" sinopsis con IA (de "+pend.length+" pendientes).\n\nTiene un costo pequeño en tu cuenta de Anthropic. ¿Continuar?"))return;
+  btn.disabled=true;let done=0,ok=0;
+  for(const b of pend.slice(0,25)){
+    const r=await aiAsk(aiPromptBook(b),500);
+    if(r.ok&&!/^NO_CONOCIDO/i.test(r.text)){const o=metaOver();const m=o[b.id]||{};m.syn=r.text;m.synAI=1;o[b.id]=m;saveMeta(o);ok++}
+    done++;btn.textContent="Generando "+done+"/"+Math.min(25,pend.length)+"…";
+    if(st)st.textContent="IA: "+ok+" sinopsis nuevas";
+    await sleep(800)}
+  btn.disabled=false;btn.textContent="✨ Generar sinopsis faltantes con IA";
+  render();if(st)st.innerHTML="<b>Listo:</b> "+ok+" sinopsis nuevas. Quedan "+(pend.length-ok)+" · vuelve a tocar para seguir.";
+  ghSyncAll()}
+(function(){const b=el("aiBulk");if(b)b.onclick=aiBulk;})();
+/* marca visual de sinopsis por IA + botón de biografía IA */
+(function(){const _od=openDetail;
+  window.openDetail=function(i){_od(i);const b=BOOKS[i];if(!b)return;
+    setTimeout(()=>{const m=metaOver()[b.id]||{};
+      if(m.synAI&&el("dsyn")&&el("dsyn").innerHTML.indexOf("IA")<0)
+        el("dsyn").innerHTML+='<div class="src">✨ Redactada por IA · revísala y corrígela si hace falta</div>';
+      const bio=el("dbio");
+      if(bio&&b.a&&!readOnly()&&bio.innerHTML.indexOf("data-act=\"aibio\"")<0){
+        const btn=document.createElement("button");btn.className="btn ghost";btn.style.marginTop="10px";
+        btn.setAttribute("data-act","aibio");btn.textContent="✨ Generar biografía con IA";
+        bio.parentNode.appendChild(btn)}},260)}})();
 
 </script>
 </body>
