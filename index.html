@@ -182,6 +182,10 @@ footer{text-align:center;color:#9A9384;font-size:12px;padding:6px 16px 24px}
 .photowrap img{display:block;width:100%;height:auto;transition:width .2s}
 .photowrap.zoom img{width:250%;max-width:none}
 .shelfthumb{width:100%;height:52px;object-fit:cover;border-radius:7px;margin-bottom:6px;display:block;background:#EDE9E0}
+
+.updbar{position:fixed;left:0;right:0;bottom:calc(66px + env(safe-area-inset-bottom));z-index:70;display:flex;align-items:center;gap:12px;
+ background:var(--ochre);color:#fff;padding:12px 16px;font-size:14px;box-shadow:0 -3px 14px rgba(0,0,0,.18)}
+.updbar button{margin-left:auto;background:#fff;color:var(--ink);border:0;border-radius:9px;padding:8px 14px;font-weight:700;font-size:13.5px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -668,9 +672,16 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
   '<div class="fld"><label>Repositorio</label><input id="s_repo" class="in" value="'+esc(GH.repo||"")+'"></div>'+
   '<div class="fld"><label>Rama</label><input id="s_branch" class="in" value="'+esc(GH.branch||"main")+'"></div>'+
   '<div class="fld"><label>Token (fine-grained, solo este repo, permiso Contents: Read and write)</label><input id="s_token" class="in" type="password" placeholder="'+(ghToken()?"•••• guardado ••••":"github_pat_…")+'"></div>'+
-  '<div class="dbtns"><button class="btn" id="s_save">Guardar</button><button class="btn ghost" id="s_test">Probar conexión</button></div><p class="src" id="s_msg"></p>';
+  '<div class="dbtns"><button class="btn" id="s_save">Guardar</button><button class="btn ghost" id="s_test">Probar conexión</button></div><p class="src" id="s_msg"></p>'+
+  '<section><h3>Aplicación</h3>'+
+    '<p class="src">Versión instalada: <b>2026.07.24-0330</b></p>'+
+    '<div class="dbtns"><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button></div>'+
+    '<p class="src">La app se actualiza sola al abrirla con conexión. Si algo no se ve nuevo, toca “Buscar actualizaciones”.</p></section>';
   openModal2();
   el("s_save").onclick=()=>{try{localStorage.setItem("gh_owner",el("s_owner").value.trim());localStorage.setItem("gh_repo",el("s_repo").value.trim());localStorage.setItem("gh_branch",el("s_branch").value.trim()||"main");const tk=el("s_token").value.trim();if(tk)localStorage.setItem("gh_token",tk);GH.owner=el("s_owner").value.trim();GH.repo=el("s_repo").value.trim();GH.branch=el("s_branch").value.trim()||"main";el("s_msg").textContent="Guardado.";toast("Ajustes guardados.")}catch(e){el("s_msg").textContent="No se pudo guardar."}};
+  el("s_upd").onclick=forceUpdate;
+  el("s_install").onclick=async()=>{if(DEFERRED){DEFERRED.prompt();try{await DEFERRED.userChoice}catch(e){}DEFERRED=null}
+    else alert("En Android: menú del navegador → “Instalar aplicación”.\nEn iPhone: botón Compartir → “Añadir a pantalla de inicio”.")};
   el("s_test").onclick=async()=>{el("s_msg").textContent="Probando…";const ok=await ghTest();el("s_msg").textContent=ok?"Conexión OK, con permiso de escritura.":"No se pudo (revisa usuario/repo/token y su acceso a ese repo)."}}
 async function ghTest(){const tk=ghToken();if(!tk||!GH.owner||!GH.repo)return false;try{const r=await fetch('https://api.github.com/repos/'+GH.owner+'/'+GH.repo,{headers:{Authorization:'Bearer '+tk}});if(!r.ok)return false;const j=await r.json();return !!j.permissions&&(j.permissions.push||j.permissions.admin)}catch(e){return false}}
 async function ghCommitReplace(adds){const tk=ghToken();if(!tk||!GH.owner||!GH.repo)return;const api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/books.json';
@@ -891,7 +902,30 @@ function editYear(b){const cur=bookYear(b)||"";
 el("mByYear").addEventListener("click",e=>{const r=e.target.closest("[data-act]");
   if(r&&r.dataset.act.startsWith("dec:")){state.dec=r.dataset.act.slice(4);state.cat="";state.author="";state.ed="";render();setView("explorar")}});
 /* PWA: service worker + botón instalar */
-if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})})}
+/* actualizaciones automáticas */
+var SWREG=null;
+function showUpdateBar(){let b=el("updBar");if(b){b.style.display="flex";return}
+  b=document.createElement("div");b.id="updBar";b.className="updbar";
+  b.innerHTML='<span>Hay una versión nueva de la biblioteca.</span><button id="updBtn">Actualizar</button>';
+  document.body.appendChild(b);
+  el("updBtn").onclick=()=>{const w=SWREG&&SWREG.waiting;if(w)w.postMessage("SKIP_WAITING");setTimeout(()=>location.reload(),350)}}
+if("serviceWorker" in navigator){window.addEventListener("load",()=>{
+  navigator.serviceWorker.register("sw.js").then(reg=>{SWREG=reg;
+    if(reg.waiting)showUpdateBar();
+    reg.addEventListener("updatefound",()=>{const nw=reg.installing;if(!nw)return;
+      nw.addEventListener("statechange",()=>{if(nw.state==="installed"&&navigator.serviceWorker.controller)showUpdateBar()})});
+    setInterval(()=>{try{reg.update()}catch(e){}},60*60*1000);
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden){try{reg.update()}catch(e){}}});
+  }).catch(()=>{});
+  let reloaded=false;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(reloaded)return;reloaded=true;location.reload()});
+})}
+async function forceUpdate(){try{
+    if(SWREG){await SWREG.update();if(SWREG.waiting)SWREG.waiting.postMessage("SKIP_WAITING")}
+    const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));
+    toast("Buscando la versión más reciente…");
+  }catch(e){}
+  setTimeout(()=>location.reload(true),700)}
 var DEFERRED=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();DEFERRED=e;const b=el("installBtn");if(b)b.style.display="block"});
 
