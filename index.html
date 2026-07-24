@@ -216,6 +216,27 @@ body.ro #newShelfBtn,body.ro #shelfNewPhoto,body.ro [data-act="ai"],body.ro [dat
 .installcard h4{font-family:Fraunces,serif;font-size:18px;margin:0 0 6px}
 .installcard p{margin:0 0 12px;font-size:13.5px;color:#C7D0E2;line-height:1.45}
 .installcard button{background:#fff;color:#17223B;border:0;border-radius:999px;padding:11px 20px;font-size:14.5px;font-weight:700;font-family:inherit;cursor:pointer}
+
+/* botón sello en relieve */
+.sealbtn{display:none;align-items:center;gap:9px;cursor:pointer;font-family:inherit;margin-left:8px;
+ background:linear-gradient(160deg,#F3DFB4 0%,#D8A857 38%,#A9701F 74%,#C89A४6 100%);
+ background:linear-gradient(160deg,#F6E6C2 0%,#D9AC5C 40%,#A9701F 78%,#E2C489 100%);
+ border:1px solid rgba(255,255,255,.55);border-radius:999px;padding:6px 15px 6px 7px;
+ box-shadow:0 6px 16px rgba(120,74,12,.45), inset 0 1px 0 rgba(255,255,255,.75), inset 0 -2px 4px rgba(120,74,12,.35);
+ transform:translateZ(0);transition:transform .12s ease, box-shadow .12s ease;animation:sealIn .45s ease}
+.sealbtn:active{transform:translateY(2px) scale(.98);
+ box-shadow:0 2px 7px rgba(120,74,12,.4), inset 0 1px 0 rgba(255,255,255,.6), inset 0 -1px 3px rgba(120,74,12,.4)}
+.sealico{width:32px;height:32px;flex:0 0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;
+ background:radial-gradient(circle at 32% 28%, #FFF8E7, #E8CE9B 60%, #B98A38 100%);
+ box-shadow:inset 0 1px 2px rgba(255,255,255,.9), inset 0 -2px 4px rgba(120,74,12,.35), 0 1px 2px rgba(0,0,0,.18);overflow:hidden}
+.sealico img,.sealico svg{width:30px;height:30px;object-fit:contain;filter:brightness(.35) saturate(.6)}
+.sealtxt{display:flex;flex-direction:column;line-height:1.02;text-align:left;color:#3A2708;
+ font-size:11px;font-weight:600;letter-spacing:.02em;text-shadow:0 1px 0 rgba(255,255,255,.5)}
+.sealtxt b{font-family:Fraunces,Georgia,serif;font-size:13.5px;font-weight:700;letter-spacing:0}
+@keyframes sealIn{from{transform:scale(.82) rotate(-8deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+.installcard{position:relative;overflow:hidden}
+.installcard .cardseal{position:absolute;right:-18px;top:-18px;width:120px;height:120px;opacity:.13}
+.installcard .cardseal img{width:100%;height:100%;object-fit:contain;filter:invert(1)}
 </style>
 </head>
 <body>
@@ -227,7 +248,7 @@ body.ro #newShelfBtn,body.ro #shelfNewPhoto,body.ro [data-act="ai"],body.ro [dat
         <div><h1>Marca y Mente</h1><div class="sub">Biblioteca</div><div class="sub2">Maritza y Javier</div></div>
       </div>
       <div class="total"><span class="num" id="totalNum">0</span><span class="lbl" id="totalLbl">libros</span></div>
-      <button id="installBtn" class="installpill" style="display:none" aria-label="Instalar app">⬇ Instalar</button>
+      <button id="installBtn" class="sealbtn" style="display:none" aria-label="Instalar app"><span class="sealico">__EMBLEM__</span><span class="sealtxt">Instalar<b>la app</b></span></button>
       <button id="gear" class="gearbtn" aria-label="Ajustes">⚙</button>
     </div>
     <div class="search" id="searchWrap">
@@ -236,7 +257,12 @@ body.ro #newShelfBtn,body.ro #shelfNewPhoto,body.ro [data-act="ai"],body.ro [dat
       <button class="clear" id="clear" aria-label="Borrar">&times;</button>
     </div>
   </div>
-  <div class="catbar" id="catbar"><select id="catSelect" class="catsel" aria-label="Categoria"></select></div>
+  <div class="catbar" id="catbar"><select id="catSelect" class="catsel" aria-label="Categoria"></select>
+    <div class="row" style="gap:8px;margin-top:8px">
+      <select id="edSelect" class="catsel" style="margin:0" aria-label="Editorial"></select>
+      <select id="yrSelect" class="catsel" style="margin:0;max-width:44%" aria-label="Año"></select>
+    </div>
+  </div>
 </header>
 
 <main class="wrap">
@@ -245,7 +271,7 @@ body.ro #newShelfBtn,body.ro #shelfNewPhoto,body.ro [data-act="ai"],body.ro [dat
     <div class="toolbar">
       <div class="result" id="result"></div>
       <label class="sort">Ordenar
-        <select id="sort" aria-label="Ordenar por"><option value="t">Título A–Z</option><option value="a">Autor A–Z</option><option value="c">Categoría</option><option value="y">Año (recientes)</option></select>
+        <select id="sort" aria-label="Ordenar por"><option value="t">Título A–Z</option><option value="a">Autor A–Z</option><option value="c">Categoría</option><option value="e">Editorial A–Z</option><option value="y">Año (recientes)</option></select>
       </label>
     </div>
     <div id="coverBanner" class="cban" style="display:none"><span id="cbanTxt">Para ver portadas y sinopsis, cárgalas una vez.</span><button id="cbanBtn">Cargar portadas</button></div>
@@ -337,7 +363,7 @@ body.ro #newShelfBtn,body.ro #shelfNewPhoto,body.ro [data-act="ai"],body.ro [dat
   <footer>
     <img id="footSeal" class="footseal" src="sello.png" alt="Sello de la Biblioteca Marca y Mente">
     <div>Marca y Mente · catálogo generado el 24/07/2026 · 315 libros</div>
-    <div id="verLine" style="margin-top:4px;font-size:11px;color:#B4AEA1">versión 2026.07.24-03:42 (hora Colombia)</div>
+    <div id="verLine" style="margin-top:4px;font-size:11px;color:#B4AEA1">versión 2026.07.24-03:58 (hora Colombia)</div>
   </footer>
 </main>
 
@@ -366,6 +392,8 @@ const norm=s=>(s||"").toString().toLowerCase().normalize("NFD").replace(/[\u0300
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 BOOKS.forEach((b,i)=>{b.i=i;b._s=norm(b.t+" "+b.a+" "+b.e+" "+b.c)});
 function splitAuthors(s){return (s||"").split(/,| y | & | con /i).map(x=>x.trim()).filter(Boolean)}
+function sortKey(s){return norm(s||"").replace(/^[^a-z0-9ñ]+/,"").trim()}
+function cmpA(a,b){return sortKey(a).localeCompare(sortKey(b),"es")}
 const firstAuthor=s=>splitAuthors(s)[0]||"";
 const color=c=>COLORS[c]||DEFAULT_COLOR; const el=id=>document.getElementById(id);
 let CACHE={};try{CACHE=JSON.parse(localStorage.getItem("bib_cache_v2")||"{}")}catch(e){CACHE={}}
@@ -383,8 +411,8 @@ function deriveData(){BOOKS.forEach((b,i)=>{b.i=i;if(!b.id)b.id="MM-N"+i;b._s=no
   CATCOUNT={};BOOKS.forEach(b=>CATCOUNT[b.c]=(CATCOUNT[b.c]||0)+1);
   Object.keys(CATCOUNT).forEach(c=>{if(!CATS.includes(c))CATS.push(c)});
   AUTH={};BOOKS.forEach(b=>splitAuthors(b.a).forEach(a=>{(AUTH[a]=AUTH[a]||[]).push(b.i)}));
-  AUTH_COUNT=Object.keys(AUTH).sort((a,b)=>AUTH[b].length-AUTH[a].length||a.localeCompare(b,"es"));
-  AUTH_ALPHA=Object.keys(AUTH).sort((a,b)=>a.localeCompare(b,"es"))}
+  AUTH_COUNT=Object.keys(AUTH).sort((a,b)=>AUTH[b].length-AUTH[a].length||cmpA(a,b));
+  AUTH_ALPHA=Object.keys(AUTH).sort(cmpA)}
 deriveData();el("totalNum").textContent=TOTAL;
 
 /* ---- IndexedDB for videos ---- */
@@ -403,7 +431,7 @@ async function idbAllBooks(){try{const db=await idb();return new Promise(res=>{c
 
 /* ---- category dropdown ---- */
 const catSel=el("catSelect");
-function buildCatSelect(){const cats=CATS.slice().sort((a,b)=>a.localeCompare(b,"es"));
+function buildCatSelect(){const cats=CATS.slice().sort(cmpA);
   let h='<option value="">Todas las categorias ('+TOTAL+')</option>';
   cats.forEach(c=>{h+='<option value="'+esc(c)+'">'+esc(c)+' ('+CATCOUNT[c]+')</option>'});
   catSel.innerHTML=h;catSel.value=state.cat}
@@ -418,10 +446,13 @@ function filtered(){const nq=norm(state.q.trim());
     if(state.dec){const y=bookYear(b);if(!y||(Math.floor(y/10)*10)+"s"!==state.dec)return false}
     if(state.cat&&b.c!==state.cat)return false;if(nq&&!b._s.includes(nq))return false;return true});
   const k=state.sort;const yr=x=>bookYear(x)||-1;
-  out.sort((a,b)=>{if(k==="y"){const d=yr(b)-yr(a);return d||a.t.localeCompare(b.t,"es")}
-    if(k==="c")return a.c.localeCompare(b.c,"es")||a.t.localeCompare(b.t,"es");
-    if(k==="a")return (a.a||"~").localeCompare(b.a||"~","es")||a.t.localeCompare(b.t,"es");
-    return a.t.localeCompare(b.t,"es")});return out}
+  out.sort((a,b)=>{if(k==="y"){const d=yr(b)-yr(a);return d||cmpA(a.t,b.t)}
+    if(k==="c")return cmpA(a.c,b.c)||cmpA(a.t,b.t);
+    if(k==="e"){const x=sortKey(a.e),y=sortKey(b.e);
+      if(!x&&y)return 1;if(x&&!y)return -1;return x.localeCompare(y,"es")||cmpA(a.t,b.t)}
+    if(k==="a"){const x=sortKey(a.a),y=sortKey(b.a);
+      if(!x&&y)return 1;if(x&&!y)return -1;return x.localeCompare(y,"es")||cmpA(a.t,b.t)}
+    return cmpA(a.t,b.t)});return out}
 function render(){const rows=filtered(),q=state.q.trim();
   const anyF=!!(state.author||state.ed||state.dec||state.lang);el("authbar").classList.toggle("show",anyF);
   if(anyF)el("filtWho").innerHTML=(state.author?'Autor: <b>'+esc(state.author)+'</b>':'')+(state.author&&state.ed?' · ':'')+(state.ed?'Editorial: <b>'+esc(state.ed)+'</b>':'')+((state.author||state.ed)&&state.dec?' · ':'')+(state.dec?'Década: <b>'+esc(state.dec)+'</b>':'')+(state.lang?(state.dec?' · ':'')+'Idioma: <b>'+(state.lang==="es"?"Español":"Inglés")+'</b>':'');
@@ -604,7 +635,7 @@ function openDetail(i){CURRENT=i;CUR_AUTHOR=null;const b=BOOKS[i];const col=colo
   const byline=b.a?'Por <a data-author="'+esc(firstAuthor(b.a))+'">'+esc(b.a)+'</a>':'<span class="muted">Autor por confirmar</span>';
   el("detail").innerHTML='<div class="top"><div class="cover" id="dcover">Buscando<br>portada…</div><div style="flex:1">'+
       '<h2>'+esc(b.t)+'</h2><div class="by">'+byline+'</div><div class="facts">'+facts+'</div>'+
-      '<div class="dbtns"><button class="btn" data-act="share">Compartir libro</button><button class="btn ghost" data-act="setcover">\uD83D\uDDBC Cambiar portada</button><button class="btn ghost" data-act="editmeta">✎ Corregir título / autor</button></div></div></div>'+
+      '<div class="dbtns"><button class="btn" data-act="share">Compartir libro</button><button class="btn ghost" data-act="setcover">\uD83D\uDDBC Cambiar portada</button><button class="btn ghost" data-act="editmeta">✎ Corregir título / autor</button><button class="btn ghost" data-act="delbook" style="color:#B3402F">🗑 Eliminar libro</button></div></div></div>'+
     '<section><h3>Sinopsis</h3><div class="body" id="dsyn"><span class="spinner"></span>Buscando en Internet…</div>'+
       '<div class="dbtns" style="margin-top:10px"><button class="btn ghost" data-act="ai">✨ Generar con IA</button><button class="btn ghost" data-act="editsyn">✎ Escribir / corregir</button></div></section>'+
     (b.a?'<section><h3>Sobre el autor</h3><div class="body" id="dbio"><span class="spinner"></span>Buscando biografía…</div></section>':'')+
@@ -732,7 +763,7 @@ el("detail").addEventListener("click",async e=>{
   const ct=e.target.closest("[data-cat]");if(ct){state.cat=ct.dataset.cat;state.author="";state.q="";qEl.value="";render();closeDetail();setView("explorar");return}
   const ob=e.target.closest("[data-openbook]");if(ob){openDetail(+ob.dataset.openbook);return}
   const ea=e.target.closest("[data-explore-author]");if(ea){state.author=ea.dataset.exploreAuthor;state.cat="";state.q="";qEl.value="";render();closeDetail();setView("explorar");return}
-  const act=e.target.closest("[data-act]");if(act){const A=act.dataset.act;if(A==="rec")el("recInput").click();else if(A==="share")shareBook(BOOKS[CURRENT]);else if(A==="retry"){delete CACHE["gb:"+CURRENT];saveCache();const b=BOOKS[CURRENT];if(el("dsyn"))el("dsyn").innerHTML='<span class="spinner"></span>Reintentando…';lookupBook(b,true).then(info=>{if(el("dsyn"))el("dsyn").innerHTML=info.synopsis?esc(info.synopsis).replace(/\n+/g,"<br><br>"):(info.neterr?'<span class="muted">Sigue sin conexión.</span>':'<span class="muted">Sin sinopsis en línea.</span>');const cv=el("dcover");if(cv&&info.cover){cv.style.background="url('"+info.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}})}else if(A==="retrybio"){const nm=firstAuthor(BOOKS[CURRENT].a);delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"retrybio")})}else if(A==="authbio"){const nm=CUR_AUTHOR;delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"authbio")})}else if(A==="yt"){setYT(BOOKS[CURRENT])}else if(A==="editcat"){editCat(BOOKS[CURRENT])}else if(A==="edityear"){editYear(BOOKS[CURRENT])}else if(A==="editmeta"){editMeta(BOOKS[CURRENT])}else if(A==="coverurl"){coverByURL(BOOKS[CURRENT])}else if(A==="editsyn"){editSyn(BOOKS[CURRENT])}else if(A==="ai"){aiSynopsis(BOOKS[CURRENT])}else if(A==="aibio"){aiBio(firstAuthor(BOOKS[CURRENT].a),BOOKS[CURRENT])}else if(A==="setcover"){coverMenu(BOOKS[CURRENT])}return}
+  const act=e.target.closest("[data-act]");if(act){const A=act.dataset.act;if(A==="rec")el("recInput").click();else if(A==="share")shareBook(BOOKS[CURRENT]);else if(A==="retry"){delete CACHE["gb:"+CURRENT];saveCache();const b=BOOKS[CURRENT];if(el("dsyn"))el("dsyn").innerHTML='<span class="spinner"></span>Reintentando…';lookupBook(b,true).then(info=>{if(el("dsyn"))el("dsyn").innerHTML=info.synopsis?esc(info.synopsis).replace(/\n+/g,"<br><br>"):(info.neterr?'<span class="muted">Sigue sin conexión.</span>':'<span class="muted">Sin sinopsis en línea.</span>');const cv=el("dcover");if(cv&&info.cover){cv.style.background="url('"+info.cover+"') center/cover no-repeat #EDE9E0";cv.textContent=""}})}else if(A==="retrybio"){const nm=firstAuthor(BOOKS[CURRENT].a);delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"retrybio")})}else if(A==="authbio"){const nm=CUR_AUTHOR;delete CACHE["wk:"+nm];saveCache();if(el("dbio"))el("dbio").innerHTML='<span class="spinner"></span>Reintentando…';lookupAuthor(nm,true).then(info=>{if(el("dbio"))el("dbio").innerHTML=bioHTML(info,nm,"authbio")})}else if(A==="yt"){setYT(BOOKS[CURRENT])}else if(A==="editcat"){editCat(BOOKS[CURRENT])}else if(A==="edityear"){editYear(BOOKS[CURRENT])}else if(A==="editmeta"){editMeta(BOOKS[CURRENT])}else if(A==="delbook"){deleteBook(BOOKS[CURRENT])}else if(A==="coverurl"){coverByURL(BOOKS[CURRENT])}else if(A==="editsyn"){editSyn(BOOKS[CURRENT])}else if(A==="ai"){aiSynopsis(BOOKS[CURRENT])}else if(A==="aibio"){aiBio(firstAuthor(BOOKS[CURRENT].a),BOOKS[CURRENT])}else if(A==="setcover"){coverMenu(BOOKS[CURRENT])}return}
   const sh=e.target.closest("[data-share]");if(sh){shareVideo(+sh.dataset.share,BOOKS[CURRENT]);return}
   const dl=e.target.closest("[data-del]");if(dl){if(confirm("¿Eliminar este video?")){await idbDel(+dl.dataset.del);await refreshVidBooks();renderVideos(BOOKS[CURRENT]);render()}return}});
 el("recInput").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f||CURRENT==null)return;
@@ -765,7 +796,7 @@ function doYT(b,u){const id=ytId(u);if(!id){alert("No reconocí el enlace de You
 function applyAdds(adds){if(!adds||!adds.length)return;const have=new Set(BOOKS.map(b=>norm((b.t||"")+"|"+(b.a||""))));
   adds.forEach(a=>{const k=norm((a.t||"")+"|"+(a.a||""));if(!have.has(k)){BOOKS.push(Object.assign({e:"",c:"Sin identificar",f:"",n:"Añadido"},a));have.add(k)}});deriveData()}
 function fillCatlist(){const dl=el("catlist");if(dl)dl.innerHTML=CATS.slice().sort((a,b)=>a.localeCompare(b,"es")).map(c=>'<option value="'+esc(c)+'">').join("")}
-function rebuildUI(){fillCatlist();buildCatSelect();if(state.view==="autores")renderAuthors();if(state.view==="metricas"){renderMetrics();renderYears()}render()}
+function rebuildUI(){fillCatlist();buildCatSelect();buildEdSelect();buildYrSelect();if(state.view==="autores")renderAuthors();if(state.view==="metricas"){renderMetrics();renderYears()}render()}
 function openModal2(){el("overlay2").classList.add("show");document.body.style.overflow="hidden";el("sheet2").scrollTop=0}
 function closeModal2(){el("overlay2").classList.remove("show");document.body.style.overflow=""}
 el("closeSheet2").onclick=closeModal2;el("backSheet2").onclick=closeModal2;el("overlay2").addEventListener("click",e=>{if(e.target===el("overlay2"))closeModal2()});
@@ -809,8 +840,8 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
       '<p class="src"><a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener"><b>Obtener una clave →</b></a> · Modelo: <input id="s_aimodel" class="in" style="display:inline-block;width:auto;padding:4px 8px;font-size:13px" value="'+esc(aiModel())+'"></p></div>'+
     '<div class="dbtns"><button class="btn" id="s_aisave">Guardar clave</button><button class="btn ghost" id="s_aitest">Probar IA</button></div><p class="src" id="aiMsg"></p></section>'+
   '<section><h3>Aplicación</h3>'+
-    '<p class="src">Versión instalada: <b>2026.07.24-03:42</b></p>'+
-    '<p class="src" id="syncState"></p><div class="dbtns"><button class="btn" id="s_pub">Publicar todo ahora</button><button class="btn ghost" id="s_meta">Publicar sinopsis y portadas</button><button class="btn ghost" id="s_share">Compartir la biblioteca</button><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button><button class="btn ghost" id="s_reset">Borrar datos descargados</button></div><div class="src" id="diagOut"></div>'+
+    '<p class="src">Versión instalada: <b>2026.07.24-03:58</b></p>'+
+    '<p class="src" id="syncState"></p><div class="dbtns"><button class="btn" id="s_pub">Publicar todo ahora</button><button class="btn ghost" id="s_meta">Publicar sinopsis y portadas</button><button class="btn ghost" id="s_share">Compartir la biblioteca</button><button class="btn ghost" id="s_upd">Buscar actualizaciones</button><button class="btn ghost" id="s_install">Instalar en el celular</button><button class="btn ghost" id="s_diag">Diagnóstico</button><button class="btn ghost" id="s_reset">Borrar datos descargados</button><button class="btn ghost" id="s_restore">Libros eliminados</button></div><div class="src" id="diagOut"></div>'+
     '<p class="src">La app se actualiza sola al abrirla con conexión. Si algo no se ve nuevo, toca “Buscar actualizaciones”.</p></section>';
   openModal2();
   el("s_save").onclick=()=>{try{localStorage.setItem("gh_owner",el("s_owner").value.trim());localStorage.setItem("gh_repo",el("s_repo").value.trim());localStorage.setItem("gh_branch",el("s_branch").value.trim()||"main");const tk=el("s_token").value.trim();if(tk)localStorage.setItem("gh_token",tk);GH.owner=el("s_owner").value.trim();GH.repo=el("s_repo").value.trim();GH.branch=el("s_branch").value.trim()||"main";el("s_msg").textContent="Guardado.";toast("Ajustes guardados.")}catch(e){el("s_msg").textContent="No se pudo guardar."}};
@@ -828,6 +859,7 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
     st.innerHTML=syncOn()?'<b style="color:#2E8B7B">Sincronización activa</b> · tus portadas y correcciones se publican en GitHub.'
       :'<b style="color:#C0642F">Sin sincronizar.</b> Las portadas que tomes quedan solo en este teléfono y se pierden si borras la app. Pon el token abajo y toca “Publicar todo ahora”.'})();
   el("s_reset").onclick=resetData;
+  el("s_restore").onclick=restoreModal;
   el("s_upd").onclick=forceUpdate;
   el("s_diag").onclick=async()=>{el("diagOut").innerHTML="Probando…";const r=await diagnose();
     el("diagOut").innerHTML="<b>Diagnóstico</b><br>"+r.map(x=>"• "+esc(x)).join("<br>")};
@@ -868,6 +900,8 @@ if(GH.owner&&GH.repo){fetch('https://raw.githubusercontent.com/'+GH.owner+'/'+GH
    if(j.coverOver){try{const cur=coverOverStore();saveCoverOver(Object.assign({},j.coverOver,cur))}catch(e){}}
    if(j.yearOver){try{const cur=yearOver();localStorage.setItem("year_over",JSON.stringify(Object.assign({},j.yearOver,cur)))}catch(e){}}
    if(j.metaOver){try{const cur=metaOver();saveMeta(Object.assign({},j.metaOver,cur));applyMetaOver()}catch(e){}}
+   if(j.deleted&&j.deleted.length){try{const cur=delSet();const ids={};cur.forEach(x=>ids[x.id]=1);
+     j.deleted.forEach(x=>{if(!ids[x.id])cur.push(x)});saveDel(cur);applyDeleted()}catch(e){}}
    if(j.shelfOver){try{const cur=shelfOver();localStorage.setItem("shelf_over",JSON.stringify(Object.assign({},j.shelfOver,cur)))}catch(e){}}
    if(j.shelfNames){try{const cur=shelfNames();localStorage.setItem("shelf_names",JSON.stringify(Object.assign({},j.shelfNames,cur)))}catch(e){}}
    if(j.countryOver){try{const cur=countryOver();localStorage.setItem("country_over",JSON.stringify(Object.assign({},j.countryOver,cur)))}catch(e){}}
@@ -934,7 +968,7 @@ function doCat(b,n){const cur=b.c||"";const nv=(n||"").trim();if(!nv||nv===cur)r
 async function ghSyncAll(){const tk=ghToken();if(!tk||!GH.owner||!GH.repo)return;
   const api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/books.json';
   try{let sha=null;const r=await fetch(api+'?ref='+GH.branch,{headers:{Authorization:'Bearer '+tk}});if(r.ok){const j=await r.json();sha=j.sha}
-    const payload={added:loadAdds(),catOver:catOver(),ytOver:ytOver(),coverOver:coverOverStore(),yearOver:yearOver(),metaOver:metaOver(),shelfOver:shelfOver(),shelfNames:shelfNames(),countryOver:countryOver()};
+    const payload={added:loadAdds(),catOver:catOver(),ytOver:ytOver(),coverOver:coverOverStore(),yearOver:yearOver(),metaOver:metaOver(),deleted:delSet(),shelfOver:shelfOver(),shelfNames:shelfNames(),countryOver:countryOver()};
     const body={message:'Actualizar biblioteca',content:btoa(unescape(encodeURIComponent(JSON.stringify(payload,null,2)))),branch:GH.branch};if(sha)body.sha=sha;
     const put=await fetch(api,{method:'PUT',headers:{Authorization:'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(put.ok)toast("Guardado en línea.");else{const e=await put.json().catch(()=>({}));toast("GitHub: "+(e.message||put.status))}}catch(e){toast("Sin conexión con GitHub.")}}
@@ -1101,7 +1135,7 @@ async function forceUpdate(){try{
   setTimeout(()=>location.reload(true),700)}
 var DEFERRED=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();DEFERRED=e;
-  const b=el("installBtn");if(b)b.style.display="flex";showInstallCard()});
+  const b=el("installBtn");if(b)b.style.display="inline-flex";showInstallCard()});
 function isStandalone(){return window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}
 function showInstallCard(){if(isStandalone())return;
   try{if(localStorage.getItem("hide_install")==="1")return}catch(e){}
@@ -1109,7 +1143,8 @@ function showInstallCard(){if(isStandalone())return;
   const host=el("v-explorar");if(!host)return;
   const d=document.createElement("div");d.className="installcard";d.id="instCard";
   const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
-  d.innerHTML='<h4>Ten la biblioteca a un toque</h4>'+
+  d.innerHTML='<span class="cardseal"><img src="sello.png" alt="" onerror="this.parentNode.remove()"></span>'+
+    '<h4>Ten la biblioteca a un toque</h4>'+
     '<p>'+(ios?'Toca <b>Compartir</b> (el cuadro con la flecha) y elige <b>“Añadir a pantalla de inicio”</b>.':'Instálala como app: se abre a pantalla completa y funciona sin conexión.')+'</p>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap">'+(ios?'':'<button id="instGo">⬇ Instalar ahora</button>')+
     '<button id="instNo" style="background:rgba(255,255,255,.14);color:#fff">Ahora no</button></div>';
@@ -1396,7 +1431,7 @@ async function diagnose(){const out=[];
   catch(e){out.push("no se pudo revisar el service worker")}
   out.push(PBASE===null?"fotos: no encontradas todavía":"fotos: encontradas en “"+(PBASE||"raíz")+"”");
   return out}
-applyMetaOver();rebuildUI();applyReadOnly();
+applyMetaOver();applyDeleted();rebuildUI();applyReadOnly();
 
 
 /* ===== estantes: foto propia y nuevos ===== */
@@ -1965,7 +2000,7 @@ function showComp(k){const m=compStats();const arr=m[k]||[];
 
 
 /* ===== control de versión visible y fiable ===== */
-const APP_VER="2026.07.24-03:42";
+const APP_VER="2026.07.24-03:58";
 async function checkVersion(silent){
   try{const r=await fetch("version.json?_="+Date.now(),{cache:"no-store"});
     if(!r.ok)return null;const j=await r.json();
@@ -2002,6 +2037,75 @@ function renderLangs(){const box=el("mByLang");if(!box)return;
 async function resetData(){if(!confirm("Se borrarán las sinopsis, portadas y biografías descargadas de Internet en ESTE teléfono. Tus textos escritos a mano y tus fotos se conservan. ¿Continuar?"))return;
   try{Object.keys(CACHE).forEach(k=>{if(k.indexOf("gb:")===0||k.indexOf("wk:")===0)delete CACHE[k]});saveCache()}catch(e){}
   toast("Datos borrados. Recargando…");setTimeout(()=>location.reload(),700)}
+
+
+/* ===== filtros de editorial y año ===== */
+function buildEdSelect(){const sel=el("edSelect");if(!sel)return;
+  const ED={};BOOKS.forEach(b=>{if(b.e)ED[b.e]=(ED[b.e]||0)+1});
+  const eds=Object.keys(ED).sort(cmpA);
+  sel.innerHTML='<option value="">Todas las editoriales</option>'+eds.map(e=>'<option value="'+esc(e)+'">'+esc(e)+' ('+ED[e]+')</option>').join("");
+  sel.value=state.ed||""}
+function buildYrSelect(){const sel=el("yrSelect");if(!sel)return;
+  const D={};BOOKS.forEach(b=>{const y=bookYear(b);if(y)D[(Math.floor(y/10)*10)+"s"]=(D[(Math.floor(y/10)*10)+"s"]||0)+1});
+  const ks=Object.keys(D).sort();
+  sel.innerHTML='<option value="">Todos los años</option>'+ks.map(k=>'<option value="'+k+'">'+k+' ('+D[k]+')</option>').join("");
+  sel.value=state.dec||""}
+(function(){const e2=el("edSelect");if(e2)e2.addEventListener("change",()=>{state.ed=e2.value;state.author="";render()});
+  const y=el("yrSelect");if(y)y.addEventListener("change",()=>{state.dec=y.value;render()});})();
+/* ===== eliminar y restaurar libros ===== */
+function delSet(){try{return JSON.parse(localStorage.getItem("deleted_books")||"[]")}catch(e){return[]}}
+function saveDel(a){try{localStorage.setItem("deleted_books",JSON.stringify(a))}catch(e){}}
+var DELETED=[];
+function applyDeleted(){const d=delSet();if(!d.length)return;
+  const set={};d.forEach(x=>set[x.id||x]=1);
+  DELETED=BOOKS.filter(b=>set[b.id]);
+  BOOKS=BOOKS.filter(b=>!set[b.id]);deriveData()}
+function deleteBook(b){
+  if(!confirm("¿Eliminar “"+b.t+"” de la biblioteca?\n\nPodrás restaurarlo desde ⚙ Ajustes."))return;
+  const d=delSet();d.push({id:b.id,t:b.t,a:b.a});saveDel(d);
+  DELETED.push(b);BOOKS=BOOKS.filter(x=>x.id!==b.id);deriveData();
+  closeDetail();rebuildUI();toast("“"+b.t+"” eliminado.");ghSyncAll()}
+function restoreModal(){const d=delSet();
+  if(!d.length){alert("No hay libros eliminados.");return}
+  el("modal2").innerHTML='<h2>Libros eliminados</h2><p class="src">Toca uno para restaurarlo.</p>'+
+    d.map((x,i)=>'<div class="ctrrow" data-restore="'+i+'"><span class="cn">'+esc(x.t)+'</span><span class="cc">'+esc(x.id)+'</span></div>').join("")+
+    '<div class="dbtns" style="margin-top:12px"><button class="btn ghost" id="rsClose">Cerrar</button></div>';
+  openModal2();el("rsClose").onclick=closeModal2;
+  el("modal2").addEventListener("click",e=>{const r=e.target.closest("[data-restore]");if(!r)return;
+    const i=+r.dataset.restore;const d2=delSet();const it=d2.splice(i,1)[0];saveDel(d2);
+    const bk=DELETED.find(x=>x.id===it.id);
+    if(bk){BOOKS.push(bk);DELETED=DELETED.filter(x=>x.id!==it.id);deriveData();rebuildUI()}
+    else{toast("Se restaurará al recargar la app");setTimeout(()=>location.reload(),900)}
+    closeModal2();toast("Restaurado.");ghSyncAll()})}
+/* ===== mapa: seleccionar solo al tocar (no al arrastrar) ===== */
+(function(){const cv=el("redCv");if(!cv)return;
+  const clone=cv.cloneNode(true);cv.parentNode.replaceChild(clone,cv);RED.cv=clone;
+  let st=null,moved=false,pinch=null;
+  const P=ev=>{const r=clone.getBoundingClientRect();const t=ev.touches&&ev.touches[0]?ev.touches[0]:ev;
+    return{x:t.clientX-r.left,y:t.clientY-r.top}};
+  const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+  const allowed=i=>{if(!RED.iso||RED.sel==null||RED.sel<0)return true;
+    if(i===RED.sel)return true;
+    return RED.links.some(l=>(l[0]===RED.sel&&l[1]===i)||(l[1]===RED.sel&&l[0]===i))};
+  const down=ev=>{if(ev.touches&&ev.touches.length===2){pinch={d:dist(ev.touches),z:RED.zoom||1};st=null;return}
+    st=P(ev);st.t=Date.now();moved=false;ev.preventDefault()};
+  const move=ev=>{
+    if(ev.touches&&ev.touches.length===2&&pinch){const k=dist(ev.touches)/(pinch.d||1);
+      RED.zoom=Math.max(0.45,Math.min(3.5,pinch.z*k));ev.preventDefault();return}
+    if(!st)return;const p=P(ev);const dx=p.x-st.x,dy=p.y-st.y;
+    if(Math.abs(dx)+Math.abs(dy)>5)moved=true;
+    RED.ry+=dx*0.008;RED.rx+=dy*0.006;RED.vry=dx*0.0015;RED.vrx=dy*0.0011;
+    st=p;st.t=Date.now();ev.preventDefault()};
+  const up=ev=>{pinch=null;
+    if(st&&!moved){const i=hitRed(st.x,st.y);
+      if(i>=0&&allowed(i))redSelect(i);
+      else if(i<0&&!RED.iso){RED.sel=null;el("redInfo").innerHTML=""}}
+    st=null};
+  clone.addEventListener("mousedown",down);clone.addEventListener("touchstart",down,{passive:false});
+  window.addEventListener("mousemove",move);clone.addEventListener("touchmove",move,{passive:false});
+  window.addEventListener("mouseup",up);clone.addEventListener("touchend",up);
+  clone.addEventListener("wheel",ev=>{RED.zoom=Math.max(0.45,Math.min(3.5,(RED.zoom||1)*(ev.deltaY<0?1.12:0.89)));ev.preventDefault()},{passive:false});
+  clone.addEventListener("dblclick",()=>{RED.zoom=1});})();
 
 </script>
 </body>
