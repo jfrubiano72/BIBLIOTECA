@@ -925,16 +925,48 @@ async function ghTest(tkIn,ownIn,repIn){
     if(j.permissions&&(j.permissions.push||j.permissions.admin))return{ok:true,msg:"Conexión correcta: el token puede escribir en "+own+"/"+rep+"."};
     return{ok:false,msg:"El token entra al repositorio pero solo de lectura. Cambia el permiso “Contents” a “Read and write”."}}
   catch(e){return{ok:false,msg:"No hubo conexión a GitHub. Revisa tu internet."}}}
+/* SE SUMA AL ARCHIVO QUE HAY, NO SE REEMPLAZA.
+   Se llamaba ghCommitReplace y hacia honor al nombre: escribia {added: lo mio}
+   y se llevaba por delante lo de los demas y TODOS los otros campos del
+   archivo -catOver, deleted, bioOver, coverOver...- que el otro guardado si
+   escribe. Ahora se lee el remoto, se funde por titulo+autor, y lo que no
+   entendemos se conserva tal cual en vez de borrarlo. */
 async function ghCommitReplace(adds){const tk=ghToken();if(!tk||!GH.owner||!GH.repo)return;const api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/books.json';
-  try{let sha=null;const r=await fetch(api+'?ref='+GH.branch,{headers:{Authorization:'Bearer '+tk}});if(r.ok){const j=await r.json();sha=j.sha}
-    const body={message:'Actualizar biblioteca ('+adds.length+' añadidos)',content:btoa(unescape(encodeURIComponent(JSON.stringify({added:adds},null,2)))),branch:GH.branch};if(sha)body.sha=sha;
+  try{let sha=null,previo={};
+    const r=await fetch(api+'?ref='+GH.branch,{headers:{Authorization:'Bearer '+tk}});
+    if(r.ok){const j=await r.json();sha=j.sha;
+      try{previo=JSON.parse(decodeURIComponent(escape(atob((j.content||"").replace(/\n/g,"")))))||{}}catch(e){previo={}}}
+    /* La union manda: si el remoto trae algo que este navegador no tiene, se
+       queda. Nunca se resta. */
+    const clave=function(b){return norm((b.t||"")+"|"+(b.a||""))};
+    const fusion=[], tengo={};
+    (previo.added||[]).concat(adds||[]).forEach(function(b){const k=clave(b); if(k&&!tengo[k]){tengo[k]=true;fusion.push(b)}});
+    if(fusion.length<((previo.added||[]).length)){toast("No se guardó: el arreglo habría quitado libros.");return}
+    const salida=Object.assign({},previo,{added:fusion});
+    const body={message:'Actualizar biblioteca ('+fusion.length+' libros)',content:btoa(unescape(encodeURIComponent(JSON.stringify(salida,null,2)))),branch:GH.branch};if(sha)body.sha=sha;
     const put=await fetch(api,{method:'PUT',headers:{Authorization:'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(put.ok)toast("Guardado en GitHub: ya lo verán todos.");else{const e=await put.json().catch(()=>({}));toast("GitHub: "+(e.message||put.status))}}catch(e){toast("No se pudo conectar con GitHub.")}}
 el("gear").onclick=openSettings;
 (function(){const ib=el("installBtn");if(!ib)return;ib.onclick=async()=>{if(!DEFERRED){alert("Para instalarla: en Android abre el menú del navegador y elige “Instalar aplicación”. En iPhone, toca Compartir y luego “Añadir a pantalla de inicio”.");return}
   DEFERRED.prompt();try{await DEFERRED.userChoice}catch(e){}DEFERRED=null;ib.style.display="none"}})();el("addBtn").onclick=openAdd;
 applyAdds(loadAdds());rebuildUI();
-if(GH.owner&&GH.repo){fetch('https://raw.githubusercontent.com/'+GH.owner+'/'+GH.repo+'/'+GH.branch+'/books.json?_='+Date.now()).then(r=>r.ok?r.json():null).then(j=>{if(j){if(j.added)applyAdds(j.added);
+/* LO REMOTO TIENE QUE ENTRAR AL NAVEGADOR, NO SOLO A LA PANTALLA.
+   Hasta el 15 de septiembre de 2026 esto llamaba a applyAdds(), que pinta los
+   libros pero NO los guarda en localStorage. Asi que un navegador que no
+   hubiera anadido libros el mismo tenia la lista local vacia, y al guardar el
+   primero mandaba SOLO ese: borraba los de todos los demas. Medido en el
+   historial: nueve libros distintos desde el 28 de julio y solo DOS en el
+   archivo vivo. Siete perdidos.
+   Ahora lo remoto se funde con lo local antes de nada. */
+function fundirAdds(remotos){
+  if(!remotos||!remotos.length)return;
+  var local=loadAdds(), clave=function(b){return norm((b.t||"")+"|"+(b.a||""))};
+  var tengo={}; local.forEach(function(b){tengo[clave(b)]=true});
+  var sumados=0;
+  remotos.forEach(function(b){var k=clave(b); if(k&&!tengo[k]){local.push(b);tengo[k]=true;sumados++}});
+  if(sumados)saveAddsLocal(local);
+}
+if(GH.owner&&GH.repo){fetch('https://raw.githubusercontent.com/'+GH.owner+'/'+GH.repo+'/'+GH.branch+'/books.json?_='+Date.now()).then(r=>r.ok?r.json():null).then(j=>{if(j){if(j.added){fundirAdds(j.added);applyAdds(j.added);}
    if(j.catOver){try{const cur=catOver();const merged=Object.assign({},j.catOver,cur);localStorage.setItem("cat_over",JSON.stringify(merged))}catch(e){}applyCatOver()}
    if(j.ytOver){try{const cur=ytOver();localStorage.setItem("yt_over",JSON.stringify(Object.assign({},j.ytOver,cur)))}catch(e){}}
    if(j.coverOver){try{const cur=coverOverStore();saveCoverOver(Object.assign({},j.coverOver,cur))}catch(e){}}
