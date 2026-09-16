@@ -20,5 +20,63 @@
       "cover": "",
       "isbn": ""
     }
-  ]
+  ],
+  "catOver": {
+    "no te creas todo lo que piensas|joseph nguyen": "Desarrollo personal",
+    "indomable|glennon doyle": "Desarrollo personal"
+  },
+  "ytOver": {},
+  "coverOver": {
+    "MM-044": "https://raw.githubusercontent.com/jfrubiano72/BIBLIOTECA/main/covers/MM-044.jpg",
+    "MM-063": "https://raw.githubusercontent.com/jfrubiano72/BIBLIOTECA/main/covers/MM-063.jpg",
+    "MM-145": "https://raw.githubusercontent.com/jfrubiano72/BIBLIOTECA/main/covers/MM-145.jpg",
+    "MM-146": "https://raw.githubusercontent.com/jfrubiano72/BIBLIOTECA/main/covers/MM-146.jpg",
+    "MM-189": "https://raw.githubusercontent.com/jfrubiano72/BIBLIOTECA/main/covers/MM-189.jpg",
+    "MM-191": "https://raw.githubusercontent.com/jfrubiano72/BIBLIOTECA/main/covers/MM-191.jpg",
+    "MM-190": "https://raw.githubusercontent.com/jfrubiano72/BIBLIOTECA/main/covers/MM-190.jpg",
+    "MM-274": "https://raw.githubusercontent.com/jfrubiano72/BIBLIOTECA/main/covers/MM-274.jpg"
+  },
+  "yearOver": {},
+  "metaOver": {
+    "MM-161": {
+      "t": "Enterrado en Vida",
+      "a": "Arnold Bennett",
+      "f": 4,
+      "p": 3
+    },
+    "MM-315": {
+      "t": "Agenda",
+      "a": "",
+      "f": 3,
+      "p": 6,
+      "syn": "Agenda nueva"
+    },
+    "MM-189": {
+      "t": "La señora dalloway",
+      "a": "Virginia Woolf",
+      "f": 2,
+      "p": 3
+    },
+    "MM-286": {
+      "t": "Atlas de las fobias y las manías",
+      "a": "Kate Summerscale",
+      "f": 14,
+      "p": 13
+    },
+    "MM-N317": {
+      "t": "Historia del Color",
+      "a": "Juan Scaliter",
+      "e": "Pinolia",
+      "lang": "es"
+    }
+  },
+  "deleted": [],
+  "bioOver": {},
+  "shelfOver": {
+    "25": "https://raw.githubusercontent.com/jfrubiano72/BIBLIOTECA/main/foto-25.jpg?v=1789566360751"
+  },
+  "shelfNames": {
+    "25": "Cubo 6"
+  },
+  "countryOver": {}
 }
