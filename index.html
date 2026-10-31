@@ -105,6 +105,9 @@ nav.tabs button.on{color:var(--ink)}nav.tabs button.on svg{stroke:var(--ochre)}
 .sheet-bar{position:sticky;top:0;background:var(--paper);display:flex;justify-content:space-between;align-items:center;padding:10px 12px 10px;z-index:5;box-shadow:0 6px 10px -8px rgba(23,34,59,.18)}
 .backbtn{border:0;background:#e7e3da;color:#3B4763;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
 .sheet-bar button{border:0;background:#e7e3da;color:#3B4763;width:34px;height:34px;border-radius:50%;font-size:18px;cursor:pointer;line-height:1}
+.sheet-bar{justify-content:center;position:sticky}
+.sheet-bar .backbtn{width:auto;height:auto;min-height:44px;min-width:140px;border-radius:999px;padding:10px 22px;font-size:16px}
+.sheet-bar button:not(.backbtn){position:absolute;right:12px;top:50%;transform:translateY(-50%);width:40px;height:40px}
 .detail{padding:6px 22px 40px}
 .detail .top{display:flex;gap:16px;align-items:flex-start}
 .cover{width:104px;min-width:104px;height:158px;border-radius:8px;background:#EDE9E0;box-shadow:0 4px 14px rgba(23,34,59,.16);display:flex;align-items:center;justify-content:center;color:#B4AEA1;font-size:11px;text-align:center;padding:8px}
@@ -931,21 +934,38 @@ async function ghTest(tkIn,ownIn,repIn){
    archivo -catOver, deleted, bioOver, coverOver...- que el otro guardado si
    escribe. Ahora se lee el remoto, se funde por titulo+autor, y lo que no
    entendemos se conserva tal cual en vez de borrarlo. */
-async function ghCommitReplace(adds){const tk=ghToken();if(!tk||!GH.owner||!GH.repo)return;const api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/books.json';
-  try{let sha=null,previo={};
-    const r=await fetch(api+'?ref='+GH.branch,{headers:{Authorization:'Bearer '+tk}});
-    if(r.ok){const j=await r.json();sha=j.sha;
-      try{previo=JSON.parse(decodeURIComponent(escape(atob((j.content||"").replace(/\n/g,"")))))||{}}catch(e){previo={}}}
-    /* La union manda: si el remoto trae algo que este navegador no tiene, se
-       queda. Nunca se resta. */
-    const clave=function(b){return norm((b.t||"")+"|"+(b.a||""))};
-    const fusion=[], tengo={};
-    (previo.added||[]).concat(adds||[]).forEach(function(b){const k=clave(b); if(k&&!tengo[k]){tengo[k]=true;fusion.push(b)}});
-    if(fusion.length<((previo.added||[]).length)){toast("No se guardó: el arreglo habría quitado libros.");return}
-    const salida=Object.assign({},previo,{added:fusion});
-    const body={message:'Actualizar biblioteca ('+fusion.length+' libros)',content:btoa(unescape(encodeURIComponent(JSON.stringify(salida,null,2)))),branch:GH.branch};if(sha)body.sha=sha;
+/* GUARDAR SIN BORRAR (31-oct-2026). books.json pasa de 1 MB por las portadas, y por encima de 1 MB la API de
+   GitHub devuelve el archivo con «content» VACIO: la app creia que el remoto no tenia nada y sobrescribia con lo
+   que hubiera en el telefono. Asi se perdieron libros dos veces. Ahora el remoto se lee entero con
+   Accept: application/vnd.github.raw, se funde campo por campo y, si el resultado tuviera menos libros que el
+   remoto, NO se guarda. Lo usan los dos guardados (agregar libro y cualquier otro cambio). */
+async function ghLeerRemoto(tk){const api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/books.json?ref='+GH.branch+'&_='+Date.now();
+  const m=await fetch(api,{headers:{Authorization:'Bearer '+tk},cache:'no-store'});
+  if(m.status===404)return {sha:null,previo:{}};
+  if(!m.ok)throw new Error('GitHub '+m.status);
+  const sha=(await m.json()).sha;
+  const r=await fetch(api,{headers:{Authorization:'Bearer '+tk,Accept:'application/vnd.github.raw'},cache:'no-store'});
+  if(!r.ok)throw new Error('GitHub '+r.status);
+  const previo=JSON.parse(await r.text()||'{}')||{};
+  return {sha:sha,previo:previo}}
+function ghFundir(previo,local){const clave=function(b){return norm((b.t||"")+"|"+(b.a||""))};
+  const salida=Object.assign({},previo);const fusion=[],tengo={};
+  (previo.added||[]).concat(local.added||[]).forEach(function(b){const k=clave(b);if(k&&!tengo[k]){tengo[k]=true;fusion.push(b)}});
+  salida.added=fusion;
+  Object.keys(local).forEach(function(k){if(k==='added')return;const a=previo[k],b=local[k];
+    if(Array.isArray(a)||Array.isArray(b)){const u=[];(a||[]).concat(b||[]).forEach(function(x){if(u.indexOf(x)<0)u.push(x)});salida[k]=u}
+    else if(a&&typeof a==='object'||b&&typeof b==='object'){salida[k]=Object.assign({},a||{},b||{})}
+    else if(b!==undefined)salida[k]=b});
+  return salida}
+async function ghGuardar(local,mensaje,okTxt){const tk=ghToken();if(!tk||!GH.owner||!GH.repo)return;
+  const api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/books.json';
+  try{const rem=await ghLeerRemoto(tk);const salida=ghFundir(rem.previo,local);
+    if((salida.added||[]).length<((rem.previo.added||[]).length)){toast("No se guardó: el cambio habría quitado libros.");return}
+    fundirAdds(salida.added);
+    const body={message:mensaje+' ('+salida.added.length+' libros)',content:btoa(unescape(encodeURIComponent(JSON.stringify(salida,null,2)))),branch:GH.branch};if(rem.sha)body.sha=rem.sha;
     const put=await fetch(api,{method:'PUT',headers:{Authorization:'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(put.ok)toast("Guardado en GitHub: ya lo verán todos.");else{const e=await put.json().catch(()=>({}));toast("GitHub: "+(e.message||put.status))}}catch(e){toast("No se pudo conectar con GitHub.")}}
+    if(put.ok)toast(okTxt);else{const e=await put.json().catch(()=>({}));toast("GitHub: "+(e.message||put.status))}}catch(e){toast("No se pudo guardar en GitHub: revise la conexión.")}}
+async function ghCommitReplace(adds){return ghGuardar({added:adds||[]},'Agregar libro',"Guardado en GitHub: ya lo verán todos.")}
 el("gear").onclick=openSettings;
 (function(){const ib=el("installBtn");if(!ib)return;ib.onclick=async()=>{if(!DEFERRED){alert("Para instalarla: en Android abre el menú del navegador y elige “Instalar aplicación”. En iPhone, toca Compartir y luego “Añadir a pantalla de inicio”.");return}
   DEFERRED.prompt();try{await DEFERRED.userChoice}catch(e){}DEFERRED=null;ib.style.display="none"}})();el("addBtn").onclick=openAdd;
@@ -1039,13 +1059,9 @@ function doCat(b,n){const cur=b.c||"";const nv=(n||"").trim();if(!nv||nv===cur)r
   b.c=nv;if(!CATS.includes(nv))CATS.push(nv);deriveData();rebuildUI();
   const ov=el("overlay");if(ov&&ov.classList.contains("show"))openDetail(b.i);
   toast("Temática cambiada a \u201c"+nv+"\u201d");ghSyncAll()}
-async function ghSyncAll(){const tk=ghToken();if(!tk||!GH.owner||!GH.repo)return;
-  const api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/books.json';
-  try{let sha=null;const r=await fetch(api+'?ref='+GH.branch,{headers:{Authorization:'Bearer '+tk}});if(r.ok){const j=await r.json();sha=j.sha}
-    const payload={added:loadAdds(),catOver:catOver(),ytOver:ytOver(),coverOver:coverOverStore(),yearOver:yearOver(),metaOver:metaOver(),deleted:delSet(),bioOver:bioOver(),shelfOver:shelfOver(),shelfNames:shelfNames(),countryOver:countryOver()};
-    const body={message:'Actualizar biblioteca',content:btoa(unescape(encodeURIComponent(JSON.stringify(payload,null,2)))),branch:GH.branch};if(sha)body.sha=sha;
-    const put=await fetch(api,{method:'PUT',headers:{Authorization:'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(put.ok)toast("Guardado en línea.");else{const e=await put.json().catch(()=>({}));toast("GitHub: "+(e.message||put.status))}}catch(e){toast("Sin conexión con GitHub.")}}
+async function ghSyncAll(){
+  const local={added:loadAdds(),catOver:catOver(),ytOver:ytOver(),coverOver:coverOverStore(),yearOver:yearOver(),metaOver:metaOver(),deleted:delSet(),bioOver:bioOver(),shelfOver:shelfOver(),shelfNames:shelfNames(),countryOver:countryOver()};
+  return ghGuardar(local,'Actualizar biblioteca',"Guardado en línea.")}
 applyCatOver();rebuildUI();
 
 
@@ -2082,7 +2098,7 @@ function showComp(k){const m=compStats();const arr=m[k]||[];
 
 
 /* ===== control de versión visible y fiable ===== */
-const APP_VER="2026.10.31-01:00";
+const APP_VER="2026.10.31-01:40";
 async function checkVersion(silent){
   try{const r=await fetch("version.json?_="+Date.now(),{cache:"no-store"});
     if(!r.ok)return null;const j=await r.json();
