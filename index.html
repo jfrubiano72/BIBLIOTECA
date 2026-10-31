@@ -863,7 +863,7 @@ function saveAdd(){const t=el("f_t").value.trim();if(!t){el("addmsg").textConten
 el("isbnPhoto").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;const code=await detectBarcode(f);
   if(code){if(el("f_isbn"))el("f_isbn").value=code;if(el("addmsg"))el("addmsg").textContent="Buscando "+code+"…";const d=await gLookup("isbn:"+code);if(el("addmsg"))el("addmsg").textContent=d?"":"Código "+code+" no encontrado; escribe los datos.";fillAdd(d)}
   else{if(el("addmsg"))el("addmsg").textContent="Este teléfono no pudo leer el código. Escribe el ISBN y toca Buscar."}};
-el("coverPhoto").onchange=e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;const rd=new FileReader();rd.onload=()=>{ADDCOVER=rd.result;if(el("cvprev"))el("cvprev").innerHTML='<img src="'+rd.result+'" style="height:120px;border-radius:8px;margin-top:8px">';if(el("cvname"))el("cvname").textContent="foto lista"};rd.readAsDataURL(f)};
+el("coverPhoto").onchange=e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;const rd=new FileReader();rd.onload=()=>{ADDCOVER=rd.result;if(el("cvprev"))el("cvprev").innerHTML='<img src="'+rd.result+'" style="height:120px;border-radius:8px;margin-top:8px">';if(el("cvname"))el("cvname").textContent="foto lista"};/* la portada se guarda a 480 px: una foto entera pesaba 4 MB y llevo books.json a 39 MB (31-oct-2026) */shrinkImage(f,480).then(function(bl){rd.readAsDataURL(bl)}).catch(function(){rd.readAsDataURL(f)})};
 function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
   '<p class="src">Para que los libros y videos que agreguen se guarden en línea y los vea todo el mundo. El token se guarda solo en este teléfono.</p>'+
   '<div class="fld"><label>Usuario/Org de GitHub</label><input id="s_owner" class="in" value="'+esc(GH.owner||"")+'"></div>'+
@@ -2098,7 +2098,7 @@ function showComp(k){const m=compStats();const arr=m[k]||[];
 
 
 /* ===== control de versión visible y fiable ===== */
-const APP_VER="2026.10.31-01:40";
+const APP_VER="2026.10.31-01:50";
 async function checkVersion(silent){
   try{const r=await fetch("version.json?_="+Date.now(),{cache:"no-store"});
     if(!r.ok)return null;const j=await r.json();
