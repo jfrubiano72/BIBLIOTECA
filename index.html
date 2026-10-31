@@ -892,14 +892,14 @@ const AI_VISION_MODEL="claude-opus-5-5";
 let SUGT=null,SUGKEY="",SUGDESC="",AISUGKEY="",CATSUG=null,CATPEND=false,CATIDX=null;
 function autoMsg(h){const m=el("automsg");if(m)m.innerHTML=h}
 /* Llamada a la API con salida JSON obligada por esquema. Se pide con respaldo del servidor ante una
-   negativa del modelo; si la API rechaza ese parametro (400), se repite sin el. */
+   negativa del modelo; si la API rechaza ese parametro (400) o la cabecera no pasa, se repite sin el. */
 async function aiJSON(content,schema,maxTok){const k=aiKey();if(!k)return{ok:false,error:"Falta la clave de IA."};
   const base={model:AI_VISION_MODEL,max_tokens:maxTok||2000,output_config:{effort:"low",format:{type:"json_schema",schema:schema}},messages:[{role:"user",content:content}]};
   const hdr={"content-type":"application/json","x-api-key":k,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};
   const pedir=conRespaldo=>{const h=Object.assign({},hdr),b=Object.assign({},base);
     if(conRespaldo){h["anthropic-beta"]="server-side-fallback-2026-07-01";b.fallbacks="default"}
     return fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:h,body:JSON.stringify(b)})};
-  try{let r=await pedir(true);if(r.status===400)r=await pedir(false);
+  try{let r=null;try{r=await pedir(true)}catch(e){r=null}if(!r||r.status===400)r=await pedir(false);
     if(r.status===401)return{ok:false,error:"Clave inválida (401)."};
     if(r.status===429)return{ok:false,error:"Demasiadas peticiones (429). Espera un momento."};
     if(!r.ok){const j=await r.json().catch(()=>({}));return{ok:false,error:(j.error&&j.error.message)||("Error "+r.status+" de la API.")}}
