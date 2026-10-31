@@ -240,6 +240,9 @@ body.ro #newShelfBtn,body.ro #shelfNewPhoto,body.ro [data-act="ai"],body.ro [dat
 .installcard{position:relative;overflow:hidden}
 .installcard .cardseal{position:absolute;right:-18px;top:-18px;width:120px;height:120px;opacity:.13}
 .installcard .cardseal img{width:100%;height:100%;object-fit:contain;filter:invert(1)}
+
+/* 31-oct-2026: el Volver va arriba, entero y al centro. El flotante de abajo tapaba «Guardar libro»: fuera. */
+.backfab{display:none!important}
 </style>
 </head>
 <body>
@@ -2098,7 +2101,7 @@ function showComp(k){const m=compStats();const arr=m[k]||[];
 
 
 /* ===== control de versión visible y fiable ===== */
-const APP_VER="2026.10.31-01:50";
+const APP_VER="2026.10.31-02:00";
 async function checkVersion(silent){
   try{const r=await fetch("version.json?_="+Date.now(),{cache:"no-store"});
     if(!r.ok)return null;const j=await r.json();
