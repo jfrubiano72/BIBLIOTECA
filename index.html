@@ -942,15 +942,22 @@ async function ghTest(tkIn,ownIn,repIn){
    que hubiera en el telefono. Asi se perdieron libros dos veces. Ahora el remoto se lee entero con
    Accept: application/vnd.github.raw, se funde campo por campo y, si el resultado tuviera menos libros que el
    remoto, NO se guarda. Lo usan los dos guardados (agregar libro y cualquier otro cambio). */
-async function ghLeerRemoto(tk){const api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/books.json?ref='+GH.branch+'&_='+Date.now();
-  const m=await fetch(api,{headers:{Authorization:'Bearer '+tk},cache:'no-store'});
+async function ghLeerRemoto(tk){
+  /* Se lee por el blob (hasta 100 MB, JSON normal, sin cabeceras especiales). La lectura «raw» del 31-oct
+     volvio vacia en el celular y la app sobrescribio con lo poco que tenia: si no se puede leer, NO se guarda. */
+  const base='https://api.github.com/repos/'+GH.owner+'/'+GH.repo;
+  const m=await fetch(base+'/contents/books.json?ref='+GH.branch+'&_='+Date.now(),{headers:{Authorization:'Bearer '+tk},cache:'no-store'});
   if(m.status===404)return {sha:null,previo:{}};
   if(!m.ok)throw new Error('GitHub '+m.status);
-  const sha=(await m.json()).sha;
-  const r=await fetch(api,{headers:{Authorization:'Bearer '+tk,Accept:'application/vnd.github.raw'},cache:'no-store'});
-  if(!r.ok)throw new Error('GitHub '+r.status);
-  const previo=JSON.parse(await r.text()||'{}')||{};
-  return {sha:sha,previo:previo}}
+  const meta=await m.json();
+  const b=await fetch(base+'/git/blobs/'+meta.sha+'?_='+Date.now(),{headers:{Authorization:'Bearer '+tk},cache:'no-store'});
+  if(!b.ok)throw new Error('GitHub '+b.status);
+  const blob=await b.json();
+  const txt=decodeURIComponent(escape(atob((blob.content||'').replace(/\s/g,''))));
+  const previo=JSON.parse(txt);
+  if(!previo||!Array.isArray(previo.added))throw new Error('no se pudo leer la biblioteca en GitHub');
+  if((meta.size||0)>200&&txt.length<100)throw new Error('lectura incompleta');
+  return {sha:meta.sha,previo:previo}}
 function ghFundir(previo,local){const clave=function(b){return norm((b.t||"")+"|"+(b.a||""))};
   const salida=Object.assign({},previo);const fusion=[],tengo={};
   (previo.added||[]).concat(local.added||[]).forEach(function(b){const k=clave(b);if(k&&!tengo[k]){tengo[k]=true;fusion.push(b)}});
@@ -967,7 +974,7 @@ async function ghGuardar(local,mensaje,okTxt){const tk=ghToken();if(!tk||!GH.own
     fundirAdds(salida.added);
     const body={message:mensaje+' ('+salida.added.length+' libros)',content:btoa(unescape(encodeURIComponent(JSON.stringify(salida,null,2)))),branch:GH.branch};if(rem.sha)body.sha=rem.sha;
     const put=await fetch(api,{method:'PUT',headers:{Authorization:'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(put.ok)toast(okTxt);else{const e=await put.json().catch(()=>({}));toast("GitHub: "+(e.message||put.status))}}catch(e){toast("No se pudo guardar en GitHub: revise la conexión.")}}
+    if(put.ok)toast(okTxt);else{const e=await put.json().catch(()=>({}));toast("GitHub: "+(e.message||put.status))}}catch(e){toast("No se guardó en GitHub ("+(e&&e.message||"sin conexión")+"). Sus libros siguen en este teléfono.")}}
 async function ghCommitReplace(adds){return ghGuardar({added:adds||[]},'Agregar libro',"Guardado en GitHub: ya lo verán todos.")}
 el("gear").onclick=openSettings;
 (function(){const ib=el("installBtn");if(!ib)return;ib.onclick=async()=>{if(!DEFERRED){alert("Para instalarla: en Android abre el menú del navegador y elige “Instalar aplicación”. En iPhone, toca Compartir y luego “Añadir a pantalla de inicio”.");return}
@@ -2101,7 +2108,7 @@ function showComp(k){const m=compStats();const arr=m[k]||[];
 
 
 /* ===== control de versión visible y fiable ===== */
-const APP_VER="2026.10.31-02:00";
+const APP_VER="2026.10.31-02:15";
 async function checkVersion(silent){
   try{const r=await fetch("version.json?_="+Date.now(),{cache:"no-store"});
     if(!r.ok)return null;const j=await r.json();
