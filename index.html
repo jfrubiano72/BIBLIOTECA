@@ -137,6 +137,11 @@ footer{text-align:center;color:#9A9384;font-size:12px;padding:6px 16px 24px}
 .in{width:100%;font-size:16px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px;outline:none}
 .in:focus{border-color:var(--ochre);box-shadow:0 0 0 3px rgba(185,119,42,.18)}
 .row{display:flex;gap:8px;align-items:center}.row .in{flex:1}
+.automsg{font-size:13px;color:var(--ink-soft);margin:6px 0 0;line-height:1.4}.automsg:empty{display:none}
+.catsug:empty{display:none}.catsug{margin-top:8px}.catsel{margin-top:8px;font-size:15px;padding:9px 10px}
+.sugline{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--ochre-soft);border-radius:10px;padding:9px 11px;font-size:13.5px;line-height:1.4;margin-top:6px}
+.sugline.alt{background:var(--paper);border:1px solid var(--line)}.sugline.muted{background:none;padding:2px 0;color:var(--meta);font-size:12.5px}
+.sugsrc{color:var(--meta);font-size:12px}.sugbtn{padding:7px 12px;font-size:13px;white-space:nowrap;flex:none}.sugok{color:#2E8B7B;font-weight:600;white-space:nowrap;font-size:13px}
 .ytwrap{position:relative;padding-bottom:56.25%;height:0;margin-bottom:12px;border-radius:10px;overflow:hidden;background:#000}
 .ytwrap iframe{position:absolute;inset:0;width:100%;height:100%}
 .toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 16px;border-radius:10px;font-size:14px;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:90%;text-align:center}
@@ -843,30 +848,165 @@ function openModal2(){el("overlay2").classList.add("show");document.body.style.o
 function closeModal2(){el("overlay2").classList.remove("show");document.body.style.overflow=""}
 el("closeSheet2").onclick=closeModal2;el("backSheet2").onclick=closeModal2;el("overlay2").addEventListener("click",e=>{if(e.target===el("overlay2"))closeModal2()});
 async function gLookup(q){try{const r=await fetch('https://www.googleapis.com/books/v1/volumes?q='+encodeURIComponent(q)+'&maxResults=1&country=US');if(!r.ok)return null;const j=await r.json();const vi=j.items&&j.items[0]&&j.items[0].volumeInfo;if(!vi)return null;
-  return{t:vi.title||"",a:(vi.authors||[]).join(", "),e:vi.publisher||"",year:(vi.publishedDate||"").slice(0,4),cover:vi.imageLinks?(vi.imageLinks.thumbnail||vi.imageLinks.smallThumbnail||"").replace("http://","https://").replace("&edge=curl",""):""}}catch(e){return null}}
+  const ids=vi.industryIdentifiers||[],i13=ids.filter(x=>x.type==="ISBN_13")[0]||ids.filter(x=>x.type==="ISBN_10")[0];
+  return{t:vi.title||"",a:(vi.authors||[]).join(", "),e:vi.publisher||"",year:(vi.publishedDate||"").slice(0,4),isbn:i13?i13.identifier:"",desc:vi.description||"",cover:vi.imageLinks?(vi.imageLinks.thumbnail||vi.imageLinks.smallThumbnail||"").replace("http://","https://").replace("&edge=curl",""):""}}catch(e){return null}}
 async function detectBarcode(file){if(!("BarcodeDetector"in window))return null;try{const bd=new BarcodeDetector({formats:["ean_13","ean_8","upc_a"]});const bmp=await createImageBitmap(file);const c=await bd.detect(bmp);return c&&c[0]?c[0].rawValue:null}catch(e){return null}}
-let ADDCOVER="";
-function fillAdd(d){if(!d)return;if(d.t&&!el("f_t").value)el("f_t").value=d.t;if(d.a&&!el("f_a").value)el("f_a").value=d.a;if(d.e&&!el("f_e").value)el("f_e").value=d.e;if(d.cover){ADDCOVER=d.cover;el("cvprev").innerHTML='<img src="'+d.cover+'" style="height:120px;border-radius:8px;margin-top:8px">';el("cvname").textContent="portada encontrada"}}
+let ADDCOVER="",ADDDESC="";
+function fillAdd(d,keepCover){if(!d||!el("f_t"))return;if(d.t&&!el("f_t").value)el("f_t").value=d.t;if(d.a&&!el("f_a").value)el("f_a").value=d.a;if(d.e&&!el("f_e").value)el("f_e").value=d.e;
+  if(d.isbn&&el("f_isbn")&&!el("f_isbn").value)el("f_isbn").value=d.isbn;if(d.year&&/^\d{4}$/.test(d.year)&&el("f_y")&&!el("f_y").value)el("f_y").value=d.year;
+  if(d.desc)ADDDESC=d.desc;suggestCat();if(keepCover)return;if(d.cover){ADDCOVER=d.cover;el("cvprev").innerHTML='<img src="'+d.cover+'" style="height:120px;border-radius:8px;margin-top:8px">';el("cvname").textContent="portada encontrada"}}
 function openAdd(){el("modal2").innerHTML='<h2>Añadir libro</h2>'+
+  '<div class="fld"><label>Portada</label><div class="row"><button class="btn ghost" id="b_cover">Tomar / elegir foto</button><span id="cvname" class="src"></span></div><div id="cvprev"></div>'+
+    '<p class="src" style="margin-top:6px">Con la foto de la portada la app llena título, autor y editorial. Revisa los datos antes de guardar.</p><p class="automsg" id="automsg"></p></div>'+
   '<div class="fld"><label>ISBN (código de barras)</label><div class="row"><input id="f_isbn" class="in" inputmode="numeric" placeholder="978…"><button class="btn ghost" id="b_scan">Escanear</button><button class="btn ghost" id="b_isbn">Buscar</button></div></div>'+
   '<div class="fld"><label>Título</label><input id="f_t" class="in"></div>'+
   '<div class="fld"><label>Autor</label><input id="f_a" class="in"></div>'+
   '<div class="fld"><label>Editorial</label><input id="f_e" class="in"></div>'+
-  '<div class="fld"><label>Categoría</label><input id="f_c" class="in" list="catlist" placeholder="Escribe o elige"></div>'+
-  '<div class="fld"><label>Portada</label><div class="row"><button class="btn ghost" id="b_cover">Tomar / elegir foto</button><span id="cvname" class="src"></span></div><div id="cvprev"></div></div>'+
+  '<div class="fld"><label>Año</label><input id="f_y" class="in" inputmode="numeric" maxlength="4" placeholder="opcional" style="max-width:130px"></div>'+
+  '<div class="fld"><label>Categoría</label><input id="f_c" class="in" list="catlist" placeholder="Escribe o elige"><div id="catsug" class="catsug"></div>'+
+    '<select id="f_csel" class="in catsel"><option value="">Elegir de la lista…</option>'+CATS.filter(c=>c!=="Sin identificar").slice().sort((a,b)=>a.localeCompare(b,"es")).map(c=>'<option>'+esc(c)+'</option>').join("")+'</select></div>'+
   '<div class="dbtns"><button class="btn" id="b_save">Guardar libro</button></div><p class="src" id="addmsg"></p>';
-  ADDCOVER="";openModal2();
+  ADDCOVER="";ADDDESC="";SUGKEY="";AISUGKEY="";openModal2();
+  el("f_csel").onchange=()=>{if(el("f_csel").value){el("f_c").value=el("f_csel").value;showCatSug()}};
+  el("f_c").oninput=showCatSug;
+  ["f_t","f_a"].forEach(id=>{el(id).oninput=()=>{clearTimeout(SUGT);SUGT=setTimeout(()=>suggestCat(false),350)};el(id).onchange=()=>suggestCat(true)});
   el("b_scan").onclick=()=>el("isbnPhoto").click();
   el("b_isbn").onclick=async()=>{const v=el("f_isbn").value.trim();if(!v)return;el("addmsg").textContent="Buscando…";const d=await gLookup("isbn:"+v);el("addmsg").textContent=d?"":"No se encontró ese ISBN. Escribe los datos a mano.";fillAdd(d)};
   el("b_cover").onclick=()=>el("coverPhoto").click();
   el("b_save").onclick=saveAdd}
 function saveAdd(){const t=el("f_t").value.trim();if(!t){el("addmsg").textContent="Falta el título.";return}
-  const obj={t:t,a:el("f_a").value.trim(),e:el("f_e").value.trim(),c:el("f_c").value.trim()||"Sin identificar",f:"",n:"Añadido",cover:ADDCOVER||"",isbn:el("f_isbn").value.trim()};
+  const obj={t:t,a:el("f_a").value.trim(),e:el("f_e").value.trim(),c:el("f_c").value.trim()||"Sin identificar",f:"",n:"Añadido",cover:ADDCOVER||"",isbn:el("f_isbn").value.trim()};{const y=(el("f_y").value||"").trim();if(/^\d{4}$/.test(y))obj.year=y}
   applyAdds([obj]);const ad=loadAdds();ad.push(obj);saveAddsLocal(ad);rebuildUI();closeModal2();toast("“"+t+"” añadido.");ghCommitReplace(ad)}
 el("isbnPhoto").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;const code=await detectBarcode(f);
   if(code){if(el("f_isbn"))el("f_isbn").value=code;if(el("addmsg"))el("addmsg").textContent="Buscando "+code+"…";const d=await gLookup("isbn:"+code);if(el("addmsg"))el("addmsg").textContent=d?"":"Código "+code+" no encontrado; escribe los datos.";fillAdd(d)}
   else{if(el("addmsg"))el("addmsg").textContent="Este teléfono no pudo leer el código. Escribe el ISBN y toca Buscar."}};
-el("coverPhoto").onchange=e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;const rd=new FileReader();rd.onload=()=>{ADDCOVER=rd.result;if(el("cvprev"))el("cvprev").innerHTML='<img src="'+rd.result+'" style="height:120px;border-radius:8px;margin-top:8px">';if(el("cvname"))el("cvname").textContent="foto lista"};/* la portada se guarda a 480 px: una foto entera pesaba 4 MB y llevo books.json a 39 MB (31-oct-2026) */shrinkImage(f,480).then(function(bl){rd.readAsDataURL(bl)}).catch(function(){rd.readAsDataURL(f)})};
+el("coverPhoto").onchange=e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;const rd=new FileReader();rd.onload=()=>{ADDCOVER=rd.result;if(el("cvprev"))el("cvprev").innerHTML='<img src="'+rd.result+'" style="height:120px;border-radius:8px;margin-top:8px">';if(el("cvname"))el("cvname").textContent="foto lista"};/* la portada se guarda a 480 px: una foto entera pesaba 4 MB y llevo books.json a 39 MB (31-oct-2026) */shrinkImage(f,480).then(function(bl){rd.readAsDataURL(bl)}).catch(function(){rd.readAsDataURL(f)});autoFromCover(f)};
+/* ===== FOTO DE LA PORTADA -> DATOS, Y CATEGORIA SUGERIDA (31-oct-2026) =====
+   Orden: 1) si la foto trae codigo de barras, Google Books por ISBN; 2) si no, se lee la portada con el
+   modelo de vision (la clave de Anthropic de Ajustes) y se confirma en Google Books por titulo+autor para
+   completar editorial, año e ISBN. Los campos quedan llenos y editables: guarda el usuario, nunca la app.
+   La categoria se sugiere primero por el catalogo propio (mismo autor; palabras del titulo y la sinopsis)
+   y, con clave, el modelo elige SOLO entre las categorias existentes. Nada de esto toca el guardado
+   (ghLeerRemoto / ghFundir / ghGuardar) ni el tamaño de la portada (480 px). */
+const AI_VISION_MODEL="claude-opus-5-5";
+let SUGT=null,SUGKEY="",SUGDESC="",AISUGKEY="",CATSUG=null,CATPEND=false,CATIDX=null;
+function autoMsg(h){const m=el("automsg");if(m)m.innerHTML=h}
+/* Llamada a la API con salida JSON obligada por esquema. Se pide con respaldo del servidor ante una
+   negativa del modelo; si la API rechaza ese parametro (400), se repite sin el. */
+async function aiJSON(content,schema,maxTok){const k=aiKey();if(!k)return{ok:false,error:"Falta la clave de IA."};
+  const base={model:AI_VISION_MODEL,max_tokens:maxTok||2000,output_config:{effort:"low",format:{type:"json_schema",schema:schema}},messages:[{role:"user",content:content}]};
+  const hdr={"content-type":"application/json","x-api-key":k,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};
+  const pedir=conRespaldo=>{const h=Object.assign({},hdr),b=Object.assign({},base);
+    if(conRespaldo){h["anthropic-beta"]="server-side-fallback-2026-07-01";b.fallbacks="default"}
+    return fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:h,body:JSON.stringify(b)})};
+  try{let r=await pedir(true);if(r.status===400)r=await pedir(false);
+    if(r.status===401)return{ok:false,error:"Clave inválida (401)."};
+    if(r.status===429)return{ok:false,error:"Demasiadas peticiones (429). Espera un momento."};
+    if(!r.ok){const j=await r.json().catch(()=>({}));return{ok:false,error:(j.error&&j.error.message)||("Error "+r.status+" de la API.")}}
+    const j=await r.json();if(j.stop_reason==="refusal")return{ok:false,error:"La IA no respondió esta consulta."};
+    const txt=(j.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("").trim();
+    try{return{ok:true,data:JSON.parse(txt)}}catch(e){const m=txt.match(/\{[\s\S]*\}/);
+      if(m){try{return{ok:true,data:JSON.parse(m[0])}}catch(e2){}}return{ok:false,error:"La respuesta no vino en el formato esperado."}}}
+  catch(e){return{ok:false,error:"Sin conexión con la API de Anthropic."}}}
+const PORTADA_PROMPT="Esta es la foto de la portada de un libro. Lee lo que está impreso y devuelve:\n"+
+  "- titulo: el título principal, con el subtítulo solo si forma parte clara del título; escrito como en un catálogo (no todo en mayúsculas), con sus tildes.\n"+
+  "- autor: el nombre del autor o de los autores tal como aparecen, separados por coma.\n"+
+  "- editorial: solo si aparece en la portada; si no, cadena vacía.\n"+
+  "- idioma: código de dos letras del idioma del título (es, en, fr, pt…).\n"+
+  "- confianza: alta, media o baja, según qué tan legible y seguro es lo que leíste.\n"+
+  "No inventes ni completes de memoria: lo que no se lea en la foto queda como cadena vacía.";
+const PORTADA_SCHEMA={type:"object",properties:{titulo:{type:"string"},autor:{type:"string"},editorial:{type:"string"},idioma:{type:"string"},confianza:{type:"string",enum:["alta","media","baja"]}},required:["titulo","autor","editorial","idioma","confianza"],additionalProperties:false};
+const STOPW=new Set(("el la los las un una unos unas de del al y e o u en a por para con sin sobre que se su sus lo como mas es tu te mi mis nos ti este esta todo todos "+
+  "the of and to in for an on with your how why what from is are be you it its my our de le les des et du la pour une dans libro libros vol tomo edicion").split(" "));
+function toks(s){return norm(s).replace(/[^a-z0-9ñ ]+/g," ").split(/\s+/).filter(w=>w.length>2&&!STOPW.has(w))}
+const stem=w=>w.slice(0,6);
+function parecido(a,b){const x=new Set(toks(a).map(stem)),y=toks(b).map(stem);if(!x.size||!y.length)return false;
+  let n=0;y.forEach(w=>{if(x.has(w))n++});return n/Math.min(x.size,y.length)>=0.5}
+function catIndex(){if(CATIDX&&CATIDX.n===BOOKS.length)return CATIDX;
+  const mo=metaOver(),bag={},size={},nameT={},df={};
+  CATS.forEach(c=>{if(c==="Sin identificar")return;bag[c]={};size[c]=0;nameT[c]=new Set(toks(c).map(stem))});
+  BOOKS.forEach(b=>{if(!bag[b.c])return;size[b.c]++;
+    const syn=(CACHE["gb:"+b.id]||{}).synopsis||(mo[b.id]||{}).syn||"";
+    new Set(toks(b.t+" "+syn).map(stem)).forEach(w=>{bag[b.c][w]=(bag[b.c][w]||0)+1;df[w]=(df[w]||0)+1})});
+  CATIDX={n:BOOKS.length,bag:bag,size:size,nameT:nameT,df:df};return CATIDX}
+/* Reglas propias: 1) el autor ya esta en el catalogo -> su categoria mas frecuente; 2) palabras del
+   titulo (y de la descripcion de Google Books, si llego) frente al nombre de cada categoria y a los
+   titulos y sinopsis de sus libros. skipId sirve para medir la regla contra el propio catalogo. */
+function catRules(t,a,desc,skipId){
+  const autores=splitAuthors(a).map(norm).filter(Boolean);
+  if(autores.length){const cuenta={};let quien="";
+    BOOKS.forEach(b=>{if(b.id===skipId||!b.c||b.c==="Sin identificar")return;
+      const suyos=splitAuthors(b.a).map(norm);const hit=autores.find(x=>suyos.includes(x));
+      if(hit){cuenta[b.c]=(cuenta[b.c]||0)+1;if(!quien)quien=splitAuthors(b.a)[suyos.indexOf(hit)]}});
+    const mejor=Object.keys(cuenta).sort((x,y)=>cuenta[y]-cuenta[x])[0];
+    if(mejor){const n=cuenta[mejor];return{c:mejor,src:"catalogo",why:"ya tienes "+(n===1?"un libro":n+" libros")+" de "+quien+" en esta categoría"}}}
+  const ix=catIndex(),N=BOOKS.length;
+  const q=toks(t+" "+(desc||"").slice(0,800)),orig={};q.forEach(w=>{const s=stem(w);if(!orig[s])orig[s]=w});
+  const qs=Object.keys(orig);if(!qs.length)return null;
+  let best=null;
+  Object.keys(ix.bag).forEach(c=>{let sc=0;const comun=[];
+    qs.forEach(w=>{let p=0;if(ix.nameT[c].has(w))p+=3;
+      const tf=ix.bag[c][w]||0;if(tf){const own=(skipId&&BOOKS.some(b=>b.id===skipId&&b.c===c))?1:0;const tf2=tf-own;
+        if(tf2>0)p+=tf2/Math.sqrt(Math.max(1,ix.size[c]-own))*Math.log(1+N/(ix.df[w]||1))}
+      if(p>0){sc+=p;comun.push([p,orig[w]])}});
+    if(!best||sc>best.sc)best={c:c,sc:sc,comun:comun}});
+  if(!best||best.sc<1.2)return null;
+  const pal=best.comun.sort((x,y)=>y[0]-x[0]).slice(0,3).map(x=>"«"+x[1]+"»");
+  return{c:best.c,src:"catalogo",why:"palabras en común con esa categoría: "+pal.join(", ")}}
+function suggestCat(useAI){if(!el("f_t"))return;const t=el("f_t").value.trim(),a=el("f_a").value.trim();
+  if(!t){SUGKEY="";CATSUG=null;showCatSug();return}
+  const key=norm(t+"|"+a);
+  if(key!==SUGKEY){SUGKEY=key;SUGDESC=ADDDESC;CATSUG=catRules(t,a,ADDDESC);showCatSug()}
+  else if(ADDDESC!==SUGDESC){SUGDESC=ADDDESC;const rr=catRules(t,a,ADDDESC);if(CATSUG&&CATSUG.src==="ia")CATSUG.regla=rr;else CATSUG=rr;showCatSug()}
+  if(useAI!==false&&a&&aiKey()&&key!==AISUGKEY){AISUGKEY=key;catAI(t,a,key)}}
+async function catAI(t,a,key){const cats=CATS.filter(c=>c!=="Sin identificar");
+  const ej=cats.map(c=>"- "+c+": "+BOOKS.filter(b=>b.c===c).slice(0,4).map(b=>b.t).join(" · ")).join("\n");
+  const prompt="Eres bibliotecario de una biblioteca personal. Elige la categoría que mejor le corresponde al libro, SOLO entre las categorías de la lista; no inventes otras. "+
+    "Explica el porqué en una sola línea breve, en español.\n\nLibro\nTítulo: "+t+"\nAutor: "+a+(ADDDESC?"\nDescripción: "+ADDDESC.slice(0,600):"")+
+    "\n\nCategorías existentes, con títulos ya catalogados en cada una:\n"+ej;
+  CATPEND=true;showCatSug();
+  const r=await aiJSON(prompt,{type:"object",properties:{categoria:{type:"string",enum:cats},porque:{type:"string"}},required:["categoria","porque"],additionalProperties:false},1500);
+  if(key!==SUGKEY||!el("f_t"))return;CATPEND=false;
+  if(r.ok&&r.data&&cats.includes(r.data.categoria)){const regla=CATSUG&&CATSUG.src==="catalogo"?CATSUG:(CATSUG&&CATSUG.regla)||null;
+    CATSUG={c:r.data.categoria,src:"ia",why:String(r.data.porque||"").replace(/\s+/g," ").trim().slice(0,220),regla:regla}}
+  else if(CATSUG)CATSUG.aiErr=r.error||"la respuesta no estaba en la lista";
+  else CATSUG={c:"",aiErr:r.error||"la respuesta no estaba en la lista"};
+  showCatSug()}
+function acceptCat(c){if(!c||!el("f_c"))return;el("f_c").value=c;const s=el("f_csel");if(s)s.value=c;showCatSug()}
+function showCatSug(){const box=el("catsug");if(!box)return;const s=CATSUG,cur=(el("f_c").value||"").trim();let h="";
+  if(s&&s.c){const ok=cur===s.c;
+    h='<div class="sugline"><span>Sugerida: <b>'+esc(s.c)+'</b> · porque '+esc(s.why)+' <span class="sugsrc">('+(s.src==="ia"?"IA":"tu catálogo")+')</span></span>'+
+      (ok?'<span class="sugok">✓ Aceptada</span>':'<button class="btn sugbtn" data-cat="'+esc(s.c)+'">Aceptar</button>')+'</div>';
+    if(s.regla&&s.regla.c&&s.regla.c!==s.c)h+='<div class="sugline alt"><span>Tu catálogo sugería <b>'+esc(s.regla.c)+'</b> · '+esc(s.regla.why)+'</span>'+
+      (cur===s.regla.c?'<span class="sugok">✓ Aceptada</span>':'<button class="btn ghost sugbtn" data-cat="'+esc(s.regla.c)+'">Usar esta</button>')+'</div>'}
+  if(CATPEND)h+='<div class="sugline muted"><span><span class="spinner"></span>Consultando la categoría con IA…</span></div>';
+  else if(s&&s.aiErr)h+='<div class="sugline muted"><span>La IA no pudo sugerir: '+esc(s.aiErr)+'</span></div>';
+  if(!h&&SUGKEY)h='<div class="sugline muted"><span>Sin sugerencia: escribe la categoría o elígela de la lista.</span></div>';
+  box.innerHTML=h;box.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>acceptCat(b.dataset.cat))}
+async function autoFromCover(f){if(!el("f_t"))return;
+  autoMsg('<span class="spinner"></span>Buscando código de barras en la foto…');
+  const code=await detectBarcode(f);
+  if(code){if(el("f_isbn"))el("f_isbn").value=code;autoMsg('<span class="spinner"></span>Código '+esc(code)+' encontrado. Buscando el libro…');
+    const d=await gLookup("isbn:"+code);
+    if(d&&d.t){fillAdd(d,true);autoMsg('✓ Datos tomados del código de barras ('+esc(code)+'). Revísalos antes de guardar.');return}}
+  const sinCodigo=code?'El código '+esc(code)+' no aparece en Google Books.':(("BarcodeDetector"in window)?'La foto no muestra un código de barras legible.':'Este navegador no lee códigos de barras.');
+  if(!aiKey()){autoMsg(sinCodigo+' Para leer título y autor desde la portada falta la <b>clave de IA</b> (⚙ Ajustes → Inteligencia artificial). Mientras tanto, escribe los datos.');return}
+  autoMsg('<span class="spinner"></span>Leyendo la portada con IA…');
+  let b64;try{b64=await blobToB64(await shrinkImage(f,1024))}catch(e){autoMsg("No se pudo preparar la foto. Escribe los datos.");return}
+  const r=await aiJSON([{type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},{type:"text",text:PORTADA_PROMPT}],PORTADA_SCHEMA,2000);
+  if(!el("f_t"))return;
+  if(!r.ok){autoMsg('No se pudo leer la portada: '+esc(r.error)+' Escribe los datos.');return}
+  const v=r.data||{},t=String(v.titulo||"").trim(),a=String(v.autor||"").trim();
+  if(!t){autoMsg('La IA no distinguió el título en la foto. Prueba con más luz o escribe los datos.');return}
+  fillAdd({t:t,a:a,e:String(v.editorial||"").trim()},true);
+  autoMsg('<span class="spinner"></span>Confirmando en Google Books…');
+  const g=await gLookup('intitle:'+t+(a?' inauthor:'+firstAuthor(a):''));
+  if(!el("f_t"))return;
+  let extra;
+  if(g&&g.t&&parecido(g.t,t)){fillAdd({e:g.e,year:g.year,isbn:g.isbn,desc:g.desc},true);extra=' Editorial, año e ISBN completados con Google Books.'}
+  else extra=' No apareció en Google Books: editorial, año e ISBN quedan por completar.';
+  const conf={alta:"alta",media:"media",baja:"baja"}[v.confianza]||"";
+  autoMsg('✓ Leído de la portada'+(conf?' (confianza '+conf+')':'')+'.'+extra+(conf==="baja"?' <b>Revisa con cuidado.</b>':' Revisa antes de guardar.'))}
 function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
   '<p class="src">Para que los libros y videos que agreguen se guarden en línea y los vea todo el mundo. El token se guarda solo en este teléfono.</p>'+
   '<div class="fld"><label>Usuario/Org de GitHub</label><input id="s_owner" class="in" value="'+esc(GH.owner||"")+'"></div>'+
@@ -876,8 +1016,8 @@ function openSettings(){el("modal2").innerHTML='<h2>Ajustes · GitHub</h2>'+
     '<p class="src">'+(ghToken()?'Hay un token guardado. Si falla, pega uno nuevo aquí. <button class="linkbtn" id="s_del">Borrar token</button>':'Debe ser <b>fine-grained</b>, con acceso <b>solo a este repositorio</b> y permiso <b>Contents: Read and write</b>.')+'</p>'+
     '<p class="src"><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener"><b>Abrir GitHub para crear el token →</b></a></p></div>'+
   '<div class="dbtns"><button class="btn" id="s_save">Guardar</button><button class="btn ghost" id="s_test">Probar conexión</button></div><p class="src" id="s_msg"></p>'+
-  '<section><h3>Inteligencia artificial (sinopsis y biografías)</h3>'+
-    '<p class="src">Con una clave de Anthropic, la app puede redactar las sinopsis y biografías que no están en ninguna base de datos. La clave se guarda solo en este teléfono.</p>'+
+  '<section><h3>Inteligencia artificial (sinopsis, biografías, portadas y categorías)</h3>'+
+    '<p class="src">Con una clave de Anthropic, la app puede redactar las sinopsis y biografías que no están en ninguna base de datos, leer el título y el autor en la foto de una portada y sugerir la categoría de un libro nuevo. La clave se guarda solo en este teléfono.</p>'+
     '<div class="fld"><label>Clave de API de Anthropic</label><input id="s_ai" class="in" type="password" autocomplete="off" placeholder="'+(aiKey()?"•••• guardada ••••":"sk-ant-…")+'">'+
       '<p class="src"><a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener"><b>Obtener una clave →</b></a> · Modelo: <input id="s_aimodel" class="in" style="display:inline-block;width:auto;padding:4px 8px;font-size:13px" value="'+esc(aiModel())+'"></p></div>'+
     '<div class="dbtns"><button class="btn" id="s_aisave">Guardar clave</button><button class="btn ghost" id="s_aitest">Probar IA</button></div><p class="src" id="aiMsg"></p></section>'+
@@ -1194,7 +1334,7 @@ function paintThumbs(){const g=el("shelfGrid");if(!g||PBASE===null)return;
 /* ===== año propio, filtro por década, PWA ===== */
 function yearOver(){try{return JSON.parse(localStorage.getItem("year_over")||"{}")}catch(e){return{}}}
 function bookYear(b){const o=yearOver()[b.id];if(o)return +o;
-  const y=(CACHE["gb:"+b.id]||{}).year;return (y&&/^\d{4}$/.test(y))?+y:0}
+  const y=(CACHE["gb:"+b.id]||{}).year||b.year;return (y&&/^\d{4}$/.test(y))?+y:0}
 function editYear(b){const cur=bookYear(b)||"";
   formModal("Año de publicación",[{label:"Año (4 cifras)",val:cur,type:"num"}],vals=>doYear(b,vals[0]),
     "Google Books a veces trae un año equivocado; aquí lo corriges.")}
