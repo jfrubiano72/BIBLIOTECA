@@ -384,7 +384,7 @@ body.ro #newShelfBtn,body.ro #shelfNewPhoto,body.ro [data-act="ai"],body.ro [dat
   <footer>
     <img id="footSeal" class="footseal" src="sello.png" alt="Sello de la Biblioteca Marca y Mente">
     <div>Marca y Mente · catálogo generado el 24/07/2026 · 315 libros</div>
-    <div id="verLine" style="margin-top:4px;font-size:11px;color:#B4AEA1">versión 2026.10.31-02:30 (hora Colombia)</div>
+    <div id="verLine" style="margin-top:4px;font-size:11px;color:#B4AEA1">versión 2026.10.31-03:00 (hora Colombia)</div>
   </footer>
 </main>
 
@@ -939,7 +939,8 @@ function catRules(t,a,desc,skipId){
       const suyos=splitAuthors(b.a).map(norm);const hit=autores.find(x=>suyos.includes(x));
       if(hit){cuenta[b.c]=(cuenta[b.c]||0)+1;if(!quien)quien=splitAuthors(b.a)[suyos.indexOf(hit)]}});
     const mejor=Object.keys(cuenta).sort((x,y)=>cuenta[y]-cuenta[x])[0];
-    if(mejor){const n=cuenta[mejor];return{c:mejor,src:"catalogo",why:"ya tienes "+(n===1?"un libro":n+" libros")+" de "+quien+" en esta categoría"}}}
+    if(mejor){const n=cuenta[mejor],tot=Object.keys(cuenta).reduce((x,k)=>x+cuenta[k],0),otros=tot-n;
+      return{c:mejor,src:"catalogo",why:"ya tienes "+(n===1?"un libro":n+" libros")+" de "+quien+" en esta categoría"+(otros?" (y "+otros+" en otras)":"")}}}
   const ix=catIndex(),N=BOOKS.length;
   const q=toks(t+" "+(desc||"").slice(0,800)),orig={};q.forEach(w=>{const s=stem(w);if(!orig[s])orig[s]=w});
   const qs=Object.keys(orig);if(!qs.length)return null;
@@ -952,7 +953,7 @@ function catRules(t,a,desc,skipId){
     if(!best||sc>best.sc)best={c:c,sc:sc,comun:comun}});
   if(!best||best.sc<1.2)return null;
   const pal=best.comun.sort((x,y)=>y[0]-x[0]).slice(0,3).map(x=>"«"+x[1]+"»");
-  return{c:best.c,src:"catalogo",why:"palabras en común con esa categoría: "+pal.join(", ")}}
+  return{c:best.c,src:"catalogo",why:(pal.length===1?"comparte la palabra ":"comparte las palabras ")+pal.join(", ")+" con esa categoría"}}
 function suggestCat(useAI){if(!el("f_t"))return;const t=el("f_t").value.trim(),a=el("f_a").value.trim();
   if(!t){SUGKEY="";CATSUG=null;showCatSug();return}
   const key=norm(t+"|"+a);
@@ -962,20 +963,22 @@ function suggestCat(useAI){if(!el("f_t"))return;const t=el("f_t").value.trim(),a
 async function catAI(t,a,key){const cats=CATS.filter(c=>c!=="Sin identificar");
   const ej=cats.map(c=>"- "+c+": "+BOOKS.filter(b=>b.c===c).slice(0,4).map(b=>b.t).join(" · ")).join("\n");
   const prompt="Eres bibliotecario de una biblioteca personal. Elige la categoría que mejor le corresponde al libro, SOLO entre las categorías de la lista; no inventes otras. "+
-    "Explica el porqué en una sola línea breve, en español.\n\nLibro\nTítulo: "+t+"\nAutor: "+a+(ADDDESC?"\nDescripción: "+ADDDESC.slice(0,600):"")+
+    "Explica el porqué en una sola línea breve, en español, que complete la frase «porque…» (empieza en minúscula y sin repetir «porque»).\n\nLibro\nTítulo: "+t+"\nAutor: "+a+(ADDDESC?"\nDescripción: "+ADDDESC.slice(0,600):"")+
     "\n\nCategorías existentes, con títulos ya catalogados en cada una:\n"+ej;
   CATPEND=true;showCatSug();
   const r=await aiJSON(prompt,{type:"object",properties:{categoria:{type:"string",enum:cats},porque:{type:"string"}},required:["categoria","porque"],additionalProperties:false},1500);
   if(key!==SUGKEY||!el("f_t"))return;CATPEND=false;
   if(r.ok&&r.data&&cats.includes(r.data.categoria)){const regla=CATSUG&&CATSUG.src==="catalogo"?CATSUG:(CATSUG&&CATSUG.regla)||null;
-    CATSUG={c:r.data.categoria,src:"ia",why:String(r.data.porque||"").replace(/\s+/g," ").trim().slice(0,220),regla:regla}}
+    CATSUG={c:r.data.categoria,src:"ia",why:porQue(r.data.porque),regla:regla}}
   else if(CATSUG)CATSUG.aiErr=r.error||"la respuesta no estaba en la lista";
   else CATSUG={c:"",aiErr:r.error||"la respuesta no estaba en la lista"};
   showCatSug()}
+function porQue(x){let t=String(x||"").replace(/\s+/g," ").trim().replace(/^porque[\s,:]*/i,"").slice(0,220);
+  if(t&&!/^[A-ZÁÉÍÓÚÑ]{2}/.test(t))t=t.charAt(0).toLowerCase()+t.slice(1);return t}
 function acceptCat(c){if(!c||!el("f_c"))return;el("f_c").value=c;const s=el("f_csel");if(s)s.value=c;showCatSug()}
 function showCatSug(){const box=el("catsug");if(!box)return;const s=CATSUG,cur=(el("f_c").value||"").trim();let h="";
   if(s&&s.c){const ok=cur===s.c;
-    h='<div class="sugline"><span>Sugerida: <b>'+esc(s.c)+'</b> · porque '+esc(s.why)+' <span class="sugsrc">('+(s.src==="ia"?"IA":"tu catálogo")+')</span></span>'+
+    h='<div class="sugline"><span>Sugerida: <b>'+esc(s.c)+'</b> · porque '+esc(s.why)+' <span class="sugsrc">('+(s.src==="ia"?(s.regla&&s.regla.c===s.c?"IA · coincide con tu catálogo":"IA"):"tu catálogo")+')</span></span>'+
       (ok?'<span class="sugok">✓ Aceptada</span>':'<button class="btn sugbtn" data-cat="'+esc(s.c)+'">Aceptar</button>')+'</div>';
     if(s.regla&&s.regla.c&&s.regla.c!==s.c)h+='<div class="sugline alt"><span>Tu catálogo sugería <b>'+esc(s.regla.c)+'</b> · '+esc(s.regla.why)+'</span>'+
       (cur===s.regla.c?'<span class="sugok">✓ Aceptada</span>':'<button class="btn ghost sugbtn" data-cat="'+esc(s.regla.c)+'">Usar esta</button>')+'</div>'}
@@ -2248,7 +2251,7 @@ function showComp(k){const m=compStats();const arr=m[k]||[];
 
 
 /* ===== control de versión visible y fiable ===== */
-const APP_VER="2026.10.31-02:30";
+const APP_VER="2026.10.31-03:00";
 async function checkVersion(silent){
   try{const r=await fetch("version.json?_="+Date.now(),{cache:"no-store"});
     if(!r.ok)return null;const j=await r.json();
